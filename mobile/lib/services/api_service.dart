@@ -12,17 +12,7 @@ class ApiService {
   // For iOS Simulator: http://localhost:5000/api
   // For Physical Device: http://YOUR_COMPUTER_IP:5000/api (e.g., http://192.168.1.100:5000/api)
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5000/api';
-    } else if (Platform.isAndroid) {
-      // Android emulator uses 10.0.2.2 to access host machine's localhost
-      return 'http://10.0.2.2:5000/api';
-    } else if (Platform.isIOS) {
-      // iOS simulator can use localhost
-      return 'http://localhost:5000/api';
-    }
-    // Fallback for physical devices - replace with your computer's IP
-    return 'http://10.0.2.2:5000/api';
+    return 'https://school-mgmt-api-y0qs.onrender.com/api';
   }
 
   final _storage = const FlutterSecureStorage();

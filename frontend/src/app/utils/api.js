@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Adjust if needed
+    baseURL: (process.env.NEXT_PUBLIC_API_URL || 'https://school-mgmt-api-y0qs.onrender.com') + '/api',
     headers: {
         'Content-Type': 'application/json',
     },

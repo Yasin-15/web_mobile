@@ -5,7 +5,7 @@ let socket: Socket | null = null;
 export const initSocket = (tenantId: string) => {
     if (socket) return socket;
 
-    socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+    socket = io(process.env.NEXT_PUBLIC_API_URL || 'https://school-mgmt-api-y0qs.onrender.com');
 
     socket.on('connect', () => {
         console.log('Connected to socket server');
