@@ -1,7 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '../../utils/api';
+import api from '../utils/api';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
