@@ -24,6 +24,7 @@ A comprehensive, full-stack school management system with multi-tenant architect
 - [Key Features Deep Dive](#-key-features-deep-dive)
 - [Screenshots](#-screenshots)
 - [Team Contributors](#-team-contributors)
+- [Deployment](DEPLOYMENT_GUIDE.md)
 - [Contributing](#-contributing)
 - [License](#-license)
 

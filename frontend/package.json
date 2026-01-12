@@ -12,6 +12,7 @@
     "@heroicons/react": "^2.2.0",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
+    "clsx": "^2.1.1",
     "html2canvas": "^1.4.1",
     "html2canvas-pro": "^1.6.3",
     "jspdf": "^3.0.4",
@@ -24,6 +25,7 @@
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
     "socket.io-client": "^4.8.3",
+    "tailwind-merge": "^3.4.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
