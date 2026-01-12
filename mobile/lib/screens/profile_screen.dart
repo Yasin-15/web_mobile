@@ -6,6 +6,7 @@ import '../providers/teacher_provider.dart';
 import '../providers/parent_provider.dart';
 import 'login_screen.dart';
 import 'settings/theme_settings_screen.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -41,6 +42,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context,
       ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: Text(
           isStudent ? 'Student Profile' : 'Profile & Settings',
           style: const TextStyle(fontWeight: FontWeight.bold),

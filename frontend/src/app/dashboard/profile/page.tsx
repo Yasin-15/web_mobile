@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../../utils/api';
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
+import { PermissionGuard } from '../../../components/PermissionGuard';
+import { ReadOnlyField } from '../../../components/ReadOnlyField';
+import { RESOURCES, ACTIONS } from '../../../hooks/usePermission';
 
 export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
@@ -257,10 +260,10 @@ export default function ProfilePage() {
                                 Academic Information
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <InfoItem label="Program" value={user?.profile?.class || 'B.S. Software Engineering'} />
-                                <InfoItem label="Current Semester" value={`Term ${user?.profile?.section || 'Spring 2024'}`} />
-                                <InfoItem label="GPA" value={grades?.cumulativeGpa || '3.8'} isHighlighted />
-                                <InfoItem label="Enrollment Year" value={user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : '2021'} />
+                                <InfoItem label="Class" value={user?.profile?.class || 'Not Assigned'} />
+                                <InfoItem label="Section" value={user?.profile?.section || 'Not Assigned'} />
+                                <InfoItem label="GPA" value={grades?.cumulativeGpa || 'N/A'} isHighlighted />
+                                <InfoItem label="Enrollment Year" value={user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : 'N/A'} />
                             </div>
                         </div>
                     )}
@@ -272,9 +275,9 @@ export default function ProfilePage() {
                             Personal Details
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <InfoItem label="Date of Birth" value={user?.profile?.dob ? new Date(user.profile.dob).toLocaleDateString() : 'Mar 12, 1999'} />
-                            <InfoItem label="Gender" value={user?.profile?.gender || 'Male'} className="capitalize" />
-                            <InfoItem label="Address" value={user?.profile?.address || '123 University Ave, Campus Dorm B, Room 402'} className="md:col-span-2" />
+                            <InfoItem label="Date of Birth" value={user?.profile?.dob ? new Date(user.profile.dob).toLocaleDateString() : 'Not Set'} />
+                            <InfoItem label="Gender" value={user?.profile?.gender || 'Not Set'} className="capitalize" />
+                            <InfoItem label="Address" value={user?.profile?.address || 'Not Provided'} className="md:col-span-2" />
                         </div>
                     </div>
 
@@ -286,8 +289,7 @@ export default function ProfilePage() {
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <InfoItem label="Email" value={user?.email} isLink />
-                            <InfoItem label="Phone" value={user?.profile?.phone || '+1 (555) 123-4567'} isPhone />
-                            <InfoItem label="Emergency Contact" value="Sarah Johnson (+1 555-987-6543)" className="md:col-span-2" />
+                            <InfoItem label="Phone" value={user?.profile?.phone || 'Not Provided'} isPhone />
                         </div>
                     </div>
                 </div>
@@ -336,6 +338,7 @@ export default function ProfilePage() {
                     </form>
 
                     {/* Edit Profile Quick Form */}
+                    {/* Edit Profile Quick Form */}
                     <form onSubmit={handleUpdateProfile} className="glass dark:bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm space-y-6">
                         <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             <span className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">✏️</span>
@@ -343,39 +346,49 @@ export default function ProfilePage() {
                         </h2>
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <input
-                                    placeholder="First Name"
-                                    value={profileForm.firstName}
-                                    onChange={e => setProfileForm({ ...profileForm, firstName: e.target.value })}
-                                    className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                />
-                                <input
-                                    placeholder="Last Name"
-                                    value={profileForm.lastName}
-                                    onChange={e => setProfileForm({ ...profileForm, lastName: e.target.value })}
-                                    className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
-                                />
+                                <ReadOnlyField resource={RESOURCES.PROFILE} action={ACTIONS.UPDATE} value={profileForm.firstName} label="First Name">
+                                    <input
+                                        placeholder="First Name"
+                                        value={profileForm.firstName}
+                                        onChange={e => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                                        className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    />
+                                </ReadOnlyField>
+                                <ReadOnlyField resource={RESOURCES.PROFILE} action={ACTIONS.UPDATE} value={profileForm.lastName} label="Last Name">
+                                    <input
+                                        placeholder="Last Name"
+                                        value={profileForm.lastName}
+                                        onChange={e => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                                        className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    />
+                                </ReadOnlyField>
                             </div>
-                            <input
-                                placeholder="Phone"
-                                value={profileForm.phone}
-                                onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
-                                className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
-                            />
-                            <input
-                                placeholder="Address"
-                                value={profileForm.address}
-                                onChange={e => setProfileForm({ ...profileForm, address: e.target.value })}
-                                className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
-                            />
+                            <ReadOnlyField resource={RESOURCES.PROFILE} action={ACTIONS.UPDATE} value={profileForm.phone} label="Phone">
+                                <input
+                                    placeholder="Phone"
+                                    value={profileForm.phone}
+                                    onChange={e => setProfileForm({ ...profileForm, phone: e.target.value })}
+                                    className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                            </ReadOnlyField>
+                            <ReadOnlyField resource={RESOURCES.PROFILE} action={ACTIONS.UPDATE} value={profileForm.address} label="Address">
+                                <input
+                                    placeholder="Address"
+                                    value={profileForm.address}
+                                    onChange={e => setProfileForm({ ...profileForm, address: e.target.value })}
+                                    className="w-full px-5 py-3 bg-white/50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                />
+                            </ReadOnlyField>
                         </div>
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all disabled:opacity-50 text-sm"
-                        >
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </button>
+                        <PermissionGuard resource={RESOURCES.PROFILE} action={ACTIONS.UPDATE}>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all disabled:opacity-50 text-sm"
+                            >
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </PermissionGuard>
                     </form>
                 </div>
             </div>

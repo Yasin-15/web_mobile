@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/teacher_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StaffCertificatesScreen extends StatefulWidget {
   const StaffCertificatesScreen({super.key});
@@ -24,6 +25,12 @@ class _StaffCertificatesScreenState extends State<StaffCertificatesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'Certificate Management',
           style: TextStyle(

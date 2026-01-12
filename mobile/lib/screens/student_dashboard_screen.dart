@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/student_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'notifications_screen.dart';
-import 'profile_screen.dart';
 import 'assignments/student_assignment_list_screen.dart';
-import 'timetable/student_timetable_screen.dart';
 import 'attendance/student_attendance_screen.dart';
+import 'timetable/student_timetable_screen.dart';
 import 'exams/student_exams_screen.dart';
-import 'materials/student_materials_screen.dart';
-import 'student/student_certificates_screen.dart';
-import 'exams/student_grades_screen.dart';
+import 'student/student_fees_screen.dart';
 import 'login_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -39,6 +37,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       provider.fetchAssignments();
       provider.fetchExams();
       provider.fetchCertificates();
+      provider.fetchStudentGrades();
       provider.initializeListeners(classId);
     });
   }
@@ -57,6 +56,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'Student Portal',
           style: TextStyle(fontWeight: FontWeight.w900),
@@ -79,152 +84,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ),
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            UserAccountsDrawerHeader(
-              accountName: Text(
-                '${user?['firstName'] ?? 'Student'} ${user?['lastName'] ?? ''}',
-              ),
-              accountEmail: Text(user?['email'] ?? ''),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text(
-                  '${user?['firstName']?[0] ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 24.0,
-                    color: Color(0xFF6366F1),
-                  ),
-                ),
-              ),
-              decoration: const BoxDecoration(color: Color(0xFF6366F1)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text('Dashboard'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.assignment),
-              title: const Text('Assignments'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentAssignmentListScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Timetable'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentTimetableScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.check_circle_outline),
-              title: const Text('Attendance'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentAttendanceScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.assignment_turned_in),
-              title: const Text('Exams & Results'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const StudentExamsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.grade),
-              title: const Text('Grades'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentGradesScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.library_books),
-              title: const Text('Learning Materials'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentMaterialsScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.workspace_premium),
-              title: const Text('Digital Certificates'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentCertificatesScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context); // Close drawer
-                await auth.logout();
-                if (context.mounted) {
-                  Provider.of<StudentProvider>(context, listen: false).clear();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                    (route) => false,
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           String? classId;
@@ -232,6 +91,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             classId = user['profile']['class'];
           }
           await studentProvider.fetchDashboardData(classId);
+          await studentProvider.fetchStudentGrades();
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -272,14 +132,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ),
               const SizedBox(height: 32),
               const Text(
-                'My Attendance',
+                'Quick Actions',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              if (studentProvider.isLoading)
-                const Center(child: CircularProgressIndicator())
-              else
-                _buildAttendanceCard(studentProvider.attendanceStats),
+              _buildQuickActions(context),
+              const SizedBox(height: 32),
+              const Text(
+                'Academic Overview',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              _buildAcademicCard(studentProvider),
               const SizedBox(height: 32),
               const Text(
                 'Today\'s Schedule',
@@ -387,6 +251,166 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
+  Widget _buildQuickActions(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildActionItem(
+          context,
+          'Attendance',
+          Icons.calendar_today,
+          const Color(0xFF3B82F6),
+          const StudentAttendanceScreen(),
+        ),
+        _buildActionItem(
+          context,
+          'Timetable',
+          Icons.calendar_month,
+          const Color(0xFF8B5CF6),
+          const StudentTimetableScreen(),
+        ),
+        _buildActionItem(
+          context,
+          'Exams',
+          Icons.assignment_turned_in,
+          const Color(0xFFF59E0B),
+          const StudentExamsScreen(),
+        ),
+        _buildActionItem(
+          context,
+          'Fees',
+          Icons.account_balance_wallet,
+          const Color(0xFF10B981),
+          const StudentFeesScreen(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionItem(
+    BuildContext context,
+    String label,
+    IconData icon,
+    Color color,
+    Widget screen,
+  ) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => screen),
+          ),
+          child: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: color),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.blueGrey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAcademicCard(StudentProvider provider) {
+    final stats = provider.attendanceStats;
+    final percentage = stats?['percentage'] ?? '0';
+
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF3B82F6).withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ATTENDANCE',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$percentage%',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF8B5CF6),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'AVG GRADE',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  provider.studentGrades?['cumulativeGpa']?.toString() ?? 'N/A',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   String _getDayName(int weekday) {
     const days = [
       'Monday',
@@ -398,89 +422,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       'Sunday',
     ];
     return days[weekday - 1];
-  }
-
-  Widget _buildAttendanceCard(Map<String, dynamic>? stats) {
-    final percentage = stats?['percentage'] ?? '0';
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF818CF8)],
-        ),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Overall Attendance',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$percentage%',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildAttendanceStat(
-                'Present',
-                '${stats?['present'] ?? 0}',
-                Colors.greenAccent,
-              ),
-              _buildAttendanceStat(
-                'Absent',
-                '${stats?['absent'] ?? 0}',
-                Colors.redAccent,
-              ),
-              _buildAttendanceStat(
-                'Late',
-                '${stats?['late'] ?? 0}',
-                Colors.orangeAccent,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttendanceStat(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
-    );
   }
 
   Widget _buildScheduleItem(String subject, String time, String room) {

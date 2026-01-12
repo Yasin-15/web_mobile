@@ -118,7 +118,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedClassId,
+                    initialValue: selectedClassId,
                     hint: const Text(
                       'Class',
                       style: TextStyle(color: Colors.white54),
@@ -147,7 +147,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: selectedSubjectId,
+                    initialValue: selectedSubjectId,
                     hint: const Text(
                       'Subject',
                       style: TextStyle(color: Colors.white54),

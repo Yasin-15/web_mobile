@@ -65,9 +65,9 @@ export default function DashboardPage() {
         pendingFees: '$0',
         upcomingExams: 0
     });
-    const [teacherData, setTeacherData] = useState<{ classes: string[], timetable: any[], totalStudents: number }>({
+    const [timetable, setTimetable] = useState<any[]>([]);
+    const [teacherData, setTeacherData] = useState<{ classes: string[], totalStudents: number }>({
         classes: [],
-        timetable: [],
         totalStudents: 0
     });
     const [studentStats, setStudentStats] = useState({
@@ -118,8 +118,8 @@ export default function DashboardPage() {
                             api.get('/students')
                         ]);
                         const ttData = ttRes.data.data || [];
+                        setTimetable(ttData);
                         setTeacherData({
-                            timetable: ttData,
                             classes: Array.from(new Set(ttData.map((s: any) => s.class?.name))) as string[],
                             totalStudents: stRes.data.count || 0
                         });
@@ -128,11 +128,12 @@ export default function DashboardPage() {
                         api.get('/timetable/teacher/workload').then(res => setWorkload(res.data.data || { totalHours: 0, totalSlots: 0 }));
                         api.get('/exams').then(res => setExams(res.data.data || []));
                     } else if (userData.role === 'student') {
-                        const [invRes, attRes, assRes, ttRes] = await Promise.all([
+                        const [invRes, attRes, assRes, ttRes, gradesRes] = await Promise.all([
                             api.get(`/fees/invoices?studentId=${userData._id}`),
                             api.get('/attendance/my'),
                             api.get('/assignments'),
-                            api.get('/timetable/student/me')
+                            api.get('/timetable/student/me'),
+                            api.get('/exams/student-grades')
                         ]);
 
                         const invoices = invRes.data.data || [];
@@ -143,15 +144,29 @@ export default function DashboardPage() {
                         const presentDays = attLogs.filter((a: any) => a.status === 'present').length;
                         const attPercent = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
+                        const gradesData = gradesRes.data.data || {};
+
+                        // Find next exam
+                        const { data: allExamsRes } = await api.get('/exams');
+                        const allExams = allExamsRes.data || [];
+                        const upcomingExams = allExams
+                            .filter((e: any) => new Date(e.startDate) > new Date())
+                            .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+                        const nextExamDate = upcomingExams.length > 0
+                            ? new Date(upcomingExams[0].startDate).toLocaleDateString()
+                            : 'None Scheduled';
+
                         setStudentStats(prev => ({
                             ...prev,
                             pendingFees: `$${unpaid.toLocaleString()}`,
                             attendance: `${attPercent}%`,
-                            attendanceRecords: attLogs
+                            attendanceRecords: attLogs,
+                            gpa: gradesData.cumulativeGpa || 'N/A',
+                            nextExam: nextExamDate
                         }));
 
                         setTasks(assRes.data.data || []);
-                        setTeacherData(prev => ({ ...prev, timetable: ttRes.data.data || [] }));
+                        setTimetable(ttRes.data.data || []);
                     } else if (userData.role === 'parent') {
                         const { data: childRes } = await api.get('/students/my-children');
                         setChildren(childRes.data || []);
@@ -299,10 +314,10 @@ export default function DashboardPage() {
 
     // --- TEACHER DATA ---
     const teacherWorkloadData = isTeacher ? {
-        labels: Array.from(new Set(teacherData.timetable.map((t: any) => t.subject?.name || 'Unknown'))),
+        labels: Array.from(new Set(timetable.map((t: any) => t.subject?.name || 'Unknown'))),
         datasets: [{
-            data: Array.from(new Set(teacherData.timetable.map((t: any) => t.subject?.name))).map(subjName =>
-                teacherData.timetable.filter((t: any) => t.subject?.name === subjName).length
+            data: Array.from(new Set(timetable.map((t: any) => t.subject?.name))).map(subjName =>
+                timetable.filter((t: any) => t.subject?.name === subjName).length
             ),
             backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
             borderWidth: 0,
@@ -603,8 +618,8 @@ export default function DashboardPage() {
                         {[
                             { label: 'My Students', value: teacherData.totalStudents, icon: <Users className="w-6 h-6" />, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
                             { label: 'Weekly Hours', value: workload.totalHours, icon: <Clock className="w-6 h-6" />, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-                            { label: 'Periods Today', value: teacherData.timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length, icon: <Calendar className="w-6 h-6" />, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-                            { label: 'Active Subjects', value: [...new Set(teacherData.timetable.map((t: any) => t.subject?.name))].length, icon: <BookOpen className="w-6 h-6" />, color: 'text-rose-400', bg: 'bg-rose-400/10' },
+                            { label: 'Periods Today', value: timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length, icon: <Calendar className="w-6 h-6" />, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+                            { label: 'Active Subjects', value: [...new Set(timetable.map((t: any) => t.subject?.name))].length, icon: <BookOpen className="w-6 h-6" />, color: 'text-rose-400', bg: 'bg-rose-400/10' },
                         ].map((item, i) => (
 
                             <div key={i} className="glass dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 relative overflow-hidden group hover:border-slate-300 dark:hover:border-white/10 transition-all duration-300 shadow-sm">
@@ -627,7 +642,7 @@ export default function DashboardPage() {
                             </h2>
 
                             <div className="space-y-4">
-                                {teacherData.timetable
+                                {timetable
                                     .filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()))
                                     .map((slot: any, idx: number) => (
                                         <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
@@ -642,7 +657,7 @@ export default function DashboardPage() {
                                             </div>
                                         </div>
                                     ))}
-                                {teacherData.timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length === 0 && (
+                                {timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length === 0 && (
                                     <div className="text-center py-10 text-slate-600 italic">No classes scheduled for today.</div>
                                 )}
                             </div>
@@ -693,8 +708,8 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
                             { label: 'My Attendance', value: studentStats.attendance, icon: <Calendar className="w-6 h-6" />, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
-                            { label: 'Weekly Average', value: studentStats.gpa, icon: <TrendingUp className="w-6 h-6" />, color: 'text-green-400', bg: 'bg-green-400/10' },
-                            { label: 'Pending Dues', value: studentStats.pendingFees, icon: <DollarSign className="w-6 h-6" />, color: 'text-red-400', bg: 'bg-red-400/10' },
+                            { label: 'Current GPA', value: studentStats.gpa, icon: <TrendingUp className="w-6 h-6" />, color: 'text-green-400', bg: 'bg-green-400/10' },
+                            { label: 'Pending Fees', value: `$${studentStats.pendingFees}`, icon: <DollarSign className="w-6 h-6" />, color: 'text-red-400', bg: 'bg-red-400/10' },
                             { label: 'Next Exam', value: studentStats.nextExam, icon: <FileText className="w-6 h-6" />, color: 'text-purple-400', bg: 'bg-purple-400/10' },
                         ].map((item, i) => (
 
@@ -708,6 +723,34 @@ export default function DashboardPage() {
                         ))}
                     </div>
 
+                    {/* Student Quick Actions */}
+                    <div className="glass dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 shadow-sm">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                                <Zap className="w-5 h-5" />
+                            </div>
+                            <span>Student Portal</span>
+                        </h2>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+                            {[
+                                { name: 'My Information', icon: <Users className="w-6 h-6" />, href: '/dashboard/profile', color: 'hover:bg-indigo-600' },
+                                { name: 'Attendance', icon: <CheckCircle2 className="w-6 h-6" />, href: '/dashboard/attendance', color: 'hover:bg-emerald-600' },
+                                { name: 'Grades', icon: <BarChart3 className="w-6 h-6" />, href: '/dashboard/grades', color: 'hover:bg-blue-600' },
+                                { name: 'Reports', icon: <FileText className="w-6 h-6" />, href: '/dashboard/reports', color: 'hover:bg-purple-600' },
+                                { name: 'Fee Payments', icon: <DollarSign className="w-6 h-6" />, href: '/dashboard/finance', color: 'hover:bg-orange-600' },
+                                { name: 'Timetable', icon: <CalendarDays className="w-6 h-6" />, href: '/dashboard/timetable', color: 'hover:bg-rose-600' },
+                                { name: 'Online Exams', icon: <School className="w-6 h-6" />, href: '/dashboard/exams', color: 'hover:bg-cyan-600' },
+                                { name: 'Notifications', icon: <Bell className="w-6 h-6" />, href: '/dashboard/notifications', color: 'hover:bg-amber-600' },
+                            ].map((action, i) => (
+                                <Link key={i} href={action.href} className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 transition-all duration-300 group ${action.color}`}>
+                                    <div className="mb-2 text-slate-600 dark:text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform">{action.icon}</div>
+                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 group-hover:text-white text-center leading-tight">{action.name}</span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
@@ -718,7 +761,7 @@ export default function DashboardPage() {
                             </h2>
 
                             <div className="space-y-4">
-                                {teacherData.timetable
+                                {timetable
                                     .filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date()))
                                     .map((slot: any, idx: number) => (
                                         <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
@@ -733,7 +776,7 @@ export default function DashboardPage() {
                                             </div>
                                         </div>
                                     ))}
-                                {teacherData.timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length === 0 && (
+                                {timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length === 0 && (
                                     <div className="text-center py-10 text-slate-600 italic">No classes scheduled for today. Cheers!</div>
                                 )}
                             </div>

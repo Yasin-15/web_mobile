@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentGradesScreen extends StatefulWidget {
   const StudentGradesScreen({super.key});
@@ -52,9 +53,11 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
         ),
         title: const Text(
           'Grades',
@@ -270,27 +273,33 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
     if (name.contains('cs') || name.contains('computer')) return Icons.code;
     if (name.contains('eng') ||
         name.contains('writing') ||
-        name.contains('lit'))
+        name.contains('lit')) {
       return Icons.edit_note;
+    }
     if (name.contains('hist') || name.contains('world')) return Icons.public;
     if (name.contains('chem') ||
         name.contains('science') ||
-        name.contains('bio'))
+        name.contains('bio')) {
       return Icons.science;
+    }
     if (name.contains('math')) return Icons.functions;
     return Icons.book;
   }
 
   Color _getSubjectColor(String name) {
     name = name.toLowerCase();
-    if (name.contains('cs') || name.contains('computer'))
+    if (name.contains('cs') || name.contains('computer')) {
       return const Color(0xFF3B82F6);
-    if (name.contains('eng') || name.contains('writing'))
+    }
+    if (name.contains('eng') || name.contains('writing')) {
       return const Color(0xFF8B5CF6);
-    if (name.contains('hist') || name.contains('world'))
+    }
+    if (name.contains('hist') || name.contains('world')) {
       return const Color(0xFFF59E0B);
-    if (name.contains('chem') || name.contains('science'))
+    }
+    if (name.contains('chem') || name.contains('science')) {
       return const Color(0xFF10B981);
+    }
     return const Color(0xFF6366F1);
   }
 
@@ -428,12 +437,7 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.black12,
-          width: 2,
-          style: BorderStyle
-              .none, // We will use a custom painter if we want dashed
-        ),
+        border: Border.all(color: Colors.black12, width: 2),
       ),
       child: OutlinedButton(
         onPressed: () {},

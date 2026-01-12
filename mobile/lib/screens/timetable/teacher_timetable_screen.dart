@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/teacher_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class TeacherTimetableScreen extends StatefulWidget {
   const TeacherTimetableScreen({super.key});
@@ -42,13 +43,14 @@ class _TeacherTimetableScreenState extends State<TeacherTimetableScreen>
       }
     }
 
-    // Note: TeacherProvider stats logic calculates weeklyHours from all slots.
-    // I need to ensure TeacherProvider keeps the full list too if I want weekly view.
-    // Actually TeacherProvider.fetchDashboardData fetches everything into timetableSlots local var.
-    // Let's modify TeacherProvider to store the full timetable too.
-
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text('Faculty Timetable'),
         bottom: TabBar(
           controller: _tabController,

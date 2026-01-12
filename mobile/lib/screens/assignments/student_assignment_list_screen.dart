@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/student_provider.dart';
 import 'student_assignment_detail_screen.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentAssignmentListScreen extends StatefulWidget {
   const StudentAssignmentListScreen({super.key});
@@ -27,6 +28,12 @@ class _StudentAssignmentListScreenState
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'My Assignments',
           style: TextStyle(fontWeight: FontWeight.bold),

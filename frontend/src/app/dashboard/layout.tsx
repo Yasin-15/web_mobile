@@ -138,6 +138,7 @@ export default function DashboardLayout({
                 { name: 'Timetable', href: '/dashboard/timetable', icon: <CalendarDays className="w-5 h-5" /> },
                 { name: 'Exams', href: '/dashboard/exams', icon: <FileText className="w-5 h-5" /> },
                 { name: 'Attendance', href: '/dashboard/attendance', icon: <CalendarCheck className="w-5 h-5" /> },
+                { name: 'Grades', href: '/dashboard/grades', icon: <BarChart3 className="w-5 h-5" /> },
                 { name: 'Materials', href: '/dashboard/materials', icon: <FolderOpen className="w-5 h-5" /> },
                 { name: 'Communication', href: '/dashboard/communication', icon: <MessageSquare className="w-5 h-5" /> },
                 { name: 'Payslips', href: '/dashboard/payslips', icon: <Receipt className="w-5 h-5" /> },
@@ -161,9 +162,10 @@ export default function DashboardLayout({
                 { name: 'Attendance', href: '/dashboard/attendance', icon: <CalendarCheck className="w-5 h-5" /> },
                 { name: 'Assignments', href: '/dashboard/assignments', icon: <FileText className="w-5 h-5" /> },
                 { name: 'Exams', href: '/dashboard/exams', icon: <FileText className="w-5 h-5" /> },
+                { name: 'My Grades', href: '/dashboard/grades', icon: <TrendingUp className="w-5 h-5" /> },
                 { name: 'Certificates', href: '/dashboard/certificates', icon: <FileBadge className="w-5 h-5" /> },
                 { name: 'Materials', href: '/dashboard/materials', icon: <FolderOpen className="w-5 h-5" /> },
-                { name: 'Fees', href: '/dashboard/finance', icon: <DollarSign className="w-5 h-5" /> },
+                { name: 'Fees', href: '/dashboard/student-finance', icon: <DollarSign className="w-5 h-5" /> },
             );
         }
 

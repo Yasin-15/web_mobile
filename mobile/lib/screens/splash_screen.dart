@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'dashboard_screen.dart';
-import 'student_dashboard_screen.dart';
-import 'parent/parent_dashboard_screen.dart';
+import 'drawer/zoom_drawer_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -54,17 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (auth.isAuthenticated) {
-      final role = auth.user?['role'];
-      Widget nextScreen;
-      if (role == 'student') {
-        nextScreen = const StudentDashboardScreen();
-      } else if (role == 'teacher') {
-        nextScreen = const DashboardScreen();
-      } else if (role == 'parent') {
-        nextScreen = ParentDashboardScreen();
-      } else {
-        nextScreen = const DashboardScreen();
-      }
+      const nextScreen = ZoomDrawerScreen();
 
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(

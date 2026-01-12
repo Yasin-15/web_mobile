@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/teacher_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class AttendanceScreen extends StatefulWidget {
   final String? classId;
@@ -35,6 +36,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'Mark Attendance',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -221,6 +228,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final records = await teacher.fetchClassAttendance(classId, today);
 
     if (records.isNotEmpty) {
+      if (!mounted) return;
       setState(() {
         for (var rec in records) {
           final studentId = rec['student'] is Map
@@ -242,6 +250,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }).toList();
 
     final success = await teacher.markAttendanceBatch(_selectedClassId!, data);
+    if (!mounted) return;
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

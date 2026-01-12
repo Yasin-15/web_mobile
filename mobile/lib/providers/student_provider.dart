@@ -148,26 +148,19 @@ class StudentProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // For file upload, ideally use MultipartRequest.
-      // But our ApiService is JSON based.
-      // Offline queueing multipart is hard.
-      // For now, let's assume text submission or base64 file (if small) or just mock file path submission.
-      // User requirement: "Offline-first... assignments... Attach files".
-
-      final data = {
+      final fields = {
         'content': content,
-        if (filePath != null)
-          'filePath': filePath, // Placeholder for actual file upload logic
         'submittedAt': DateTime.now().toIso8601String(),
       };
 
-      final response = await _apiService.post(
+      final response = await _apiService.postMultipart(
         '/assignments/$assignmentId/submit',
-        data,
+        fields,
+        filePath,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('Assignment submitted successfully (or queued)');
+        debugPrint('Assignment submitted successfully');
         await fetchAssignments();
         _isLoading = false;
         notifyListeners();
@@ -191,6 +184,7 @@ class StudentProvider with ChangeNotifier {
   Map<String, dynamic>? _progressData;
   List<dynamic> _materials = [];
   List<dynamic> _certificates = [];
+  List<dynamic> _fees = [];
   Map<String, dynamic>? _studentGrades;
 
   List<dynamic> get exams => _exams;
@@ -198,7 +192,27 @@ class StudentProvider with ChangeNotifier {
   Map<String, dynamic>? get progressData => _progressData;
   List<dynamic> get materials => _materials;
   List<dynamic> get certificates => _certificates;
+  List<dynamic> get fees => _fees;
   Map<String, dynamic>? get studentGrades => _studentGrades;
+
+  Future<void> fetchFees(String? studentId) async {
+    if (studentId == null) return;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _apiService.get(
+        '/fees/invoices?studentId=$studentId',
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _fees = data['data'] ?? [];
+      }
+    } catch (e) {
+      debugPrint('Error fetching fees: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
 
   Future<void> fetchStudentGrades([String? studentId]) async {
     _isLoading = true;
@@ -330,6 +344,7 @@ class StudentProvider with ChangeNotifier {
     _materials = [];
     _certificates = [];
     _studentGrades = null;
+    _fees = [];
     _errorMessage = null;
     notifyListeners();
   }

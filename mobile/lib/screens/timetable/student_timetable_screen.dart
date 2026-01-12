@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/student_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentTimetableScreen extends StatefulWidget {
   const StudentTimetableScreen({super.key});
@@ -54,6 +55,12 @@ class _StudentTimetableScreenState extends State<StudentTimetableScreen>
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text('My Timetable'),
         bottom: TabBar(
           controller: _tabController,

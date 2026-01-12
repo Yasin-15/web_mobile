@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/teacher_provider.dart';
 import 'upload_material_screen.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class MaterialListScreen extends StatefulWidget {
   const MaterialListScreen({super.key});
@@ -25,6 +26,12 @@ class _MaterialListScreenState extends State<MaterialListScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text('Learning Materials'),
         actions: [
           IconButton(

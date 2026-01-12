@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/student_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentMaterialsScreen extends StatefulWidget {
   const StudentMaterialsScreen({super.key});
@@ -39,7 +40,15 @@ class _StudentMaterialsScreenState extends State<StudentMaterialsScreen> {
     final materials = provider.materials;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Learning Materials')),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
+        title: const Text('Learning Materials'),
+      ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : materials.isEmpty

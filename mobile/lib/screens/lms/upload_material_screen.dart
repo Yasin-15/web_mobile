@@ -62,7 +62,7 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedType,
+                      initialValue: _selectedType,
                       decoration: const InputDecoration(
                         labelText: 'Type',
                         border: OutlineInputBorder(),
@@ -99,7 +99,7 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
                       ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedClass,
+                      initialValue: _selectedClass,
                       decoration: const InputDecoration(
                         labelText: 'Class',
                         border: OutlineInputBorder(),
@@ -115,7 +115,7 @@ class _UploadMaterialScreenState extends State<UploadMaterialScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedSubject,
+                      initialValue: _selectedSubject,
                       decoration: const InputDecoration(
                         labelText: 'Subject',
                         border: OutlineInputBorder(),

@@ -73,7 +73,7 @@ export default function TeamPage() {
                 </Link>
                 <div className="hidden md:flex gap-8 items-center">
                     <Link href="/dashboard" className="text-sm font-medium text-slate-300 hover:text-white transition">Dashboard</Link>
-                    <Link href="https://github.com" target="_blank" className="text-sm font-medium text-slate-300 hover:text-white transition">Documentation</Link>
+                    <Link href="https://github.com/Yasin-15/multi-tenant_school-management-system" target="_blank" className="text-sm font-medium text-slate-300 hover:text-white transition">Documentation</Link>
                     <Link href="/contact" className="text-sm font-medium text-slate-300 hover:text-white transition">Contact</Link>
                     <Link href="/team" className="text-sm font-medium text-white">Team</Link>
                 </div>

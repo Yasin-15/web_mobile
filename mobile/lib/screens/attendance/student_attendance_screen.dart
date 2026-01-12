@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../providers/student_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentAttendanceScreen extends StatefulWidget {
   const StudentAttendanceScreen({super.key});
@@ -60,12 +61,14 @@ class _StudentAttendanceScreenState extends State<StudentAttendanceScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: isDark ? Colors.white : Colors.black87,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
           ),
-          onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Attendance',

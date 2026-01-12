@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 import 'package:fl_chart/fl_chart.dart';
 
@@ -37,6 +38,12 @@ class _StudentExamsScreenState extends State<StudentExamsScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         appBar: AppBar(
+          leading: Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () => ZoomDrawer.of(context)?.toggle(),
+            ),
+          ),
           title: const Text(
             'Academic Performance',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -74,10 +81,11 @@ class UpcomingExamsTab extends StatelessWidget {
     final provider = Provider.of<StudentProvider>(context);
     final exams = provider.exams;
 
-    if (provider.isLoading)
+    if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF6366F1)),
       );
+    }
 
     return exams.isEmpty
         ? const Center(
@@ -153,10 +161,11 @@ class MyResultsTab extends StatelessWidget {
     final provider = Provider.of<StudentProvider>(context);
     final results = provider.results;
 
-    if (provider.isLoading)
+    if (provider.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF6366F1)),
       );
+    }
 
     // Group results by exam
     final Map<String, List<dynamic>> groupedResults = {};

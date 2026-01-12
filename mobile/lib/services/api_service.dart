@@ -112,7 +112,7 @@ class ApiService {
 
         return response;
       } else {
-        debugPrint('Offline: Queuing PDF/request for $endpoint');
+        debugPrint('Offline: Queuing request for $endpoint');
         await OfflineService.queueRequest(
           endpoint: endpoint,
           method: 'POST',
@@ -147,6 +147,70 @@ class ApiService {
           200,
         );
       }
+      rethrow;
+    }
+  }
+
+  Future<http.Response> postMultipart(
+    String endpoint,
+    Map<String, String> fields,
+    String? filePath, {
+    String fileKey = 'file',
+  }) async {
+    try {
+      if (await _isOnline()) {
+        final url = '$baseUrl$endpoint';
+        debugPrint('POST Multipart Request: $url');
+
+        final request = http.MultipartRequest('POST', Uri.parse(url));
+
+        // Get headers (especially Auth)
+        final headers = await _getHeaders();
+        request.headers.addAll(headers);
+        // Multiparts usually don't want application/json content-type header
+        request.headers.remove('Content-Type');
+
+        // Add fields
+        request.fields.addAll(fields);
+
+        // Add file
+        if (filePath != null && filePath.isNotEmpty) {
+          final file = await http.MultipartFile.fromPath(fileKey, filePath);
+          request.files.add(file);
+        }
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+
+        debugPrint(
+          'POST Multipart Response [$endpoint]: ${response.statusCode}',
+        );
+        if (response.statusCode >= 400) {
+          debugPrint('Error Response Body: ${response.body}');
+        }
+
+        return response;
+      } else {
+        // Queueing multipart is complex because of file content stringification.
+        // For simplicity, let's just queue with the physical path if available.
+        debugPrint('Offline: Queuing multipart request for $endpoint');
+        await OfflineService.queueRequest(
+          endpoint: endpoint,
+          method: 'POST',
+          body: {...fields, 'filePath': filePath}, // Heuristic body
+          headers: await _getHeaders(),
+        );
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'message': 'Saved offline. Will sync when online.',
+            'offline': true,
+          }),
+          200,
+        );
+      }
+    } catch (e) {
+      debugPrint('POST Multipart Error [$endpoint]: $e');
       rethrow;
     }
   }

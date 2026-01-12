@@ -3,25 +3,36 @@ const router = express.Router();
 const {
     createAssignment,
     getAssignments,
+    deleteAssignment,
     submitAssignment,
     getSubmissions,
     gradeSubmission
 } = require('../controllers/assignment.controller');
-const { protect, authorize } = require('../middlewares/auth.middleware');
+const { protect } = require('../middlewares/auth.middleware');
+const { checkPermission } = require('../middlewares/permission.middleware');
+const permissionService = require('../services/permission.service');
+
+const { RESOURCES, ACTIONS } = permissionService;
+
+const upload = require('../middlewares/upload.middleware');
 
 router.use(protect);
 
 router.route('/')
-    .get(getAssignments)
-    .post(authorize('teacher', 'school-admin'), createAssignment);
+    .get(checkPermission(RESOURCES.ASSIGNMENTS, ACTIONS.READ), getAssignments)
+    .post(checkPermission(RESOURCES.ASSIGNMENTS, ACTIONS.CREATE), createAssignment);
+
+router.route('/:id')
+    .delete(checkPermission(RESOURCES.ASSIGNMENTS, ACTIONS.DELETE), deleteAssignment);
 
 router.route('/:id/submit')
-    .post(authorize('student'), submitAssignment);
+    .post(checkPermission(RESOURCES.SUBMISSIONS, ACTIONS.CREATE), upload.single('file'), submitAssignment);
 
 router.route('/:id/submissions')
-    .get(authorize('teacher', 'school-admin'), getSubmissions);
+    .get(checkPermission(RESOURCES.SUBMISSIONS, ACTIONS.READ), getSubmissions);
 
 router.route('/submissions/:id/grade')
-    .post(authorize('teacher', 'school-admin'), gradeSubmission);
+    // Grading is effectively creating/updating a grade, which students cannot do.
+    .post(checkPermission(RESOURCES.GRADES, ACTIONS.CREATE), gradeSubmission);
 
 module.exports = router;

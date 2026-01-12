@@ -102,7 +102,7 @@ class ThemeSettingsScreen extends StatelessWidget {
                     onTap: () => themeProvider.setThemeMode(mode),
                   ),
                 );
-              }).toList(),
+              }),
 
               const SizedBox(height: 32),
 

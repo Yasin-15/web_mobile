@@ -3,18 +3,14 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/teacher_provider.dart';
 import '../widgets/theme_toggle_button.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 import 'attendance_screen.dart';
 import 'notifications_screen.dart';
 import 'assignments/assignment_list_screen.dart';
-import 'exams/teacher_exams_screen.dart';
-import 'profile_screen.dart';
 import 'classes/class_list_screen.dart';
-import 'lms/material_list_screen.dart';
-import 'timetable/teacher_timetable_screen.dart';
 import 'payslips_screen.dart';
 import 'certificates/staff_certificates_screen.dart';
 import 'students/all_students_screen.dart';
-import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -45,6 +41,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'Faculty Portal',
           style: TextStyle(fontWeight: FontWeight.w900),
@@ -64,159 +66,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           ),
         ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            UserAccountsDrawerHeader(
-              accountName: Text(
-                '${user?['firstName'] ?? 'Teacher'} ${user?['lastName'] ?? ''}',
-              ),
-              accountEmail: Text(user?['email'] ?? ''),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Text(
-                  '${user?['firstName']?[0] ?? ''}',
-                  style: const TextStyle(
-                    fontSize: 24.0,
-                    color: Color(0xFF6366F1),
-                  ),
-                ),
-              ),
-              decoration: const BoxDecoration(color: Color(0xFF6366F1)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.dashboard),
-              title: const Text('Dashboard'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.school),
-              title: const Text('My Classes'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ClassListScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Mark Attendance'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AttendanceScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.assignment),
-              title: const Text('Assignments'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AssignmentListScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.grade),
-              title: const Text('Exams & Grading'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const TeacherExamsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month),
-              title: const Text('My Timetable'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TeacherTimetableScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.library_books),
-              title: const Text('Learning Materials'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MaterialListScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.workspace_premium),
-              title: const Text('Digital Certificates'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StaffCertificatesScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.receipt_long),
-              title: const Text('My Payslips'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PayslipsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Profile'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context); // Close drawer
-                await auth.logout();
-                if (context.mounted) {
-                  Provider.of<TeacherProvider>(context, listen: false).clear();
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                    (route) => false,
-                  );
-                }
-              },
-            ),
-          ],
-        ),
       ),
       body: RefreshIndicator(
         onRefresh: () => teacher.fetchDashboardData(),

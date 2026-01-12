@@ -132,7 +132,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedClassId,
+                initialValue: _selectedClassId,
                 decoration: const InputDecoration(
                   labelText: 'Class',
                   border: OutlineInputBorder(),

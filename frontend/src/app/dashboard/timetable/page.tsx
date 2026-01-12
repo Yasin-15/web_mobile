@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Save } from 'lucide-react';
 
+import { PermissionGuard } from '../../../components/PermissionGuard';
+import { usePermission, RESOURCES, ACTIONS } from '../../../hooks/usePermission';
+
 const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'];
 
 const TIME_SLOTS = [
@@ -28,6 +31,9 @@ export default function TimetableGenerator() {
     // Schedule state: { [day]: { [slotIndex]: { subject: '', teacher: '' } } }
     const [schedule, setSchedule] = useState<any>({});
     const [user, setUser] = useState<any>(null);
+
+    const { hasPermission } = usePermission();
+    const canEdit = hasPermission(RESOURCES.SCHEDULES, ACTIONS.UPDATE);
 
     useEffect(() => {
         // Init schedule structure
@@ -187,14 +193,16 @@ export default function TimetableGenerator() {
                         </select>
                     </div>
 
-                    <button
-                        onClick={handleSave}
-                        disabled={saving || !selectedClass}
-                        className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
-                    >
-                        <Save size={18} />
-                        {saving ? 'Syncing...' : 'Publish Changes'}
-                    </button>
+                    <PermissionGuard resource={RESOURCES.SCHEDULES} action={ACTIONS.UPDATE}>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving || !selectedClass}
+                            className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                        >
+                            <Save size={18} />
+                            {saving ? 'Syncing...' : 'Publish Changes'}
+                        </button>
+                    </PermissionGuard>
                 </div>
             </div>
 
@@ -253,6 +261,7 @@ export default function TimetableGenerator() {
                                                 subjects={subjects}
                                                 teachers={teachers}
                                                 onChange={handleCellChange}
+                                                readOnly={!canEdit}
                                             />
                                         </td>
                                     ))}
@@ -273,6 +282,7 @@ export default function TimetableGenerator() {
                                                 subjects={subjects}
                                                 teachers={teachers}
                                                 onChange={handleCellChange}
+                                                readOnly={!canEdit}
                                             />
                                         </td>
                                     ))}
@@ -286,7 +296,7 @@ export default function TimetableGenerator() {
     );
 }
 
-function SlotCell({ day, idx, schedule, subjects, teachers, onChange }: any) {
+function SlotCell({ day, idx, schedule, subjects, teachers, onChange, readOnly }: any) {
     const cell = schedule[day]?.[idx] || { subject: '', teacher: '' };
 
     return (
@@ -294,7 +304,8 @@ function SlotCell({ day, idx, schedule, subjects, teachers, onChange }: any) {
             <select
                 value={cell.subject}
                 onChange={(e) => onChange(day, idx, 'subject', e.target.value)}
-                className="w-full p-2.5 bg-slate-900/50 border border-white/5 rounded-xl text-[11px] font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                disabled={readOnly}
+                className={`w-full p-2.5 bg-slate-900/50 border border-white/5 rounded-xl text-[11px] font-bold text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer ${readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
                 <option value="" className="bg-slate-900 text-slate-500">Subject...</option>
                 {subjects.map((s: any) => (
@@ -305,7 +316,8 @@ function SlotCell({ day, idx, schedule, subjects, teachers, onChange }: any) {
             <select
                 value={cell.teacher}
                 onChange={(e) => onChange(day, idx, 'teacher', e.target.value)}
-                className="w-full p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl text-[10px] text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                disabled={readOnly}
+                className={`w-full p-2 bg-indigo-500/5 border border-indigo-500/10 rounded-xl text-[10px] text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer ${readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
                 <option value="" className="bg-slate-900 text-indigo-500/50">Faculty...</option>
                 {teachers.map((t: any) => (

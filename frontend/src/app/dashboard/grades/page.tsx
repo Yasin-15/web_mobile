@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react';
 import api from '@/app/utils/api';
 import { toast } from 'react-hot-toast';
-import { Save, Search, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { Save, Search, AlertCircle, FileText, CheckCircle2, TrendingUp, Download, FileBadge } from 'lucide-react';
+import html2canvas from 'html2canvas-pro';
+import jsPDF from 'jspdf';
 
 interface Student {
     _id: string;
@@ -36,45 +38,132 @@ export default function GradesPage() {
     const [saving, setSaving] = useState(false);
     const [maxMarksGlobal, setMaxMarksGlobal] = useState(100);
 
+    const [user, setUser] = useState<any>(null);
+    const [studentGrades, setStudentGrades] = useState<any>(null);
+    const [children, setChildren] = useState<any[]>([]);
+    const [selectedChild, setSelectedChild] = useState<string>('');
+
     // Initial Data Fetch
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [examsRes, classesRes, subjectsRes] = await Promise.all([
-                    api.get('/exams'),
-                    api.get('/classes'),
-                    api.get('/subjects')
-                ]);
-                setExams(examsRes.data.data);
-                setClasses(classesRes.data.data);
-                setSubjects(subjectsRes.data.data);
-            } catch (error) {
-                console.error(error);
-                toast.error('Failed to load initial data');
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const userData = JSON.parse(userStr);
+            setUser(userData);
+            if (userData.role === 'student') {
+                fetchStudentGrades();
+            } else if (userData.role === 'parent') {
+                fetchChildren();
+            } else {
+                fetchInitialData();
             }
-        };
-        fetchData();
+        }
     }, []);
 
-    // Load Students & Marks when filters change
+    const fetchChildren = async () => {
+        setLoading(true);
+        try {
+            const { data } = await api.get('/students/my-children');
+            const fetchedChildren = data.data || [];
+            setChildren(fetchedChildren);
+            if (fetchedChildren.length > 0) {
+                setSelectedChild(fetchedChildren[0]._id);
+            }
+        } catch (error) {
+            console.error("Failed to fetch children", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        if (selectedExam && selectedClass && selectedSubject) {
+        if (selectedChild && user?.role === 'parent') {
+            fetchStudentGrades(selectedChild);
+        }
+    }, [selectedChild]);
+
+    const fetchInitialData = async () => {
+        try {
+            const [examsRes, classesRes, subjectsRes] = await Promise.all([
+                api.get('/exams'),
+                api.get('/classes'),
+                api.get('/subjects')
+            ]);
+            setExams(examsRes.data.data);
+            setClasses(classesRes.data.data);
+            setSubjects(subjectsRes.data.data);
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to load initial data');
+        }
+    };
+
+    const fetchStudentGrades = async (studentId?: string) => {
+        setLoading(true);
+        try {
+            const url = studentId ? `/exams/student-grades/${studentId}` : '/exams/student-grades';
+            const { data } = await api.get(url);
+            setStudentGrades(data.data);
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to load grades');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDownloadTranscript = async () => {
+        const element = document.getElementById('transcript-area');
+        if (!element) return;
+
+        setLoading(true);
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+
+            let filename = 'transcript.pdf';
+            if (user?.role === 'student') {
+                filename = `transcript-${user.firstName}.pdf`;
+            } else if (user?.role === 'parent' && selectedChild) {
+                const child = children.find(c => c._id === selectedChild);
+                filename = `transcript-${child?.firstName || 'student'}.pdf`;
+            }
+
+            pdf.save(filename);
+            toast.success('Transcript downloaded');
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to generate PDF');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Load Students & Marks when filters change (Teachers ONLY)
+    useEffect(() => {
+        if (user && !['student', 'parent'].includes(user.role) && selectedExam && selectedClass && selectedSubject) {
             fetchStudentsAndMarks();
         } else {
             setStudents([]);
             setMarksData({});
         }
-    }, [selectedExam, selectedClass, selectedSubject]);
+    }, [selectedExam, selectedClass, selectedSubject, user]);
 
     const fetchStudentsAndMarks = async () => {
         setLoading(true);
         try {
-            // 1. Get Students in Class
-            // We need to use valid API. Assuming list students by class works.
             const studentsRes = await api.get(`/students?class=${selectedClass}`);
             const fetchedStudents = studentsRes.data.data;
 
-            // 2. Get Existing Marks
             const marksRes = await api.get('/exams/marks', {
                 params: {
                     examId: selectedExam,
@@ -84,7 +173,6 @@ export default function GradesPage() {
             });
             const existingMarks = marksRes.data.data;
 
-            // 3. Merge Data
             const initialMarks: Record<string, MarkInput> = {};
 
             fetchedStudents.forEach((s: Student) => {
@@ -137,7 +225,7 @@ export default function GradesPage() {
             });
 
             toast.success('Grades saved successfully');
-            fetchStudentsAndMarks(); // Refresh
+            fetchStudentsAndMarks();
         } catch (error: any) {
             console.error(error);
             toast.error(error.response?.data?.message || 'Failed to save grades');
@@ -145,6 +233,187 @@ export default function GradesPage() {
             setSaving(false);
         }
     };
+
+    if (user?.role === 'student' || (user?.role === 'parent' && selectedChild)) {
+        const activeChild = user?.role === 'parent' ? children.find(c => c._id === selectedChild) : null;
+        return (
+            <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                            <div className="p-2.5 bg-indigo-500/10 rounded-2xl text-indigo-500">
+                                <TrendingUp className="w-8 h-8" />
+                            </div>
+                            {user?.role === 'student' ? 'My Academic Progress' : `Progress: ${activeChild?.firstName} ${activeChild?.lastName}`}
+                        </h1>
+                        <p className="text-slate-500 mt-1 uppercase text-xs font-black tracking-widest">Academic Transcript & Analytics</p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        {user?.role === 'parent' && children.length > 1 && (
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Student:</label>
+                                <select
+                                    value={selectedChild}
+                                    onChange={(e) => setSelectedChild(e.target.value)}
+                                    className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                >
+                                    {children.map(child => (
+                                        <option key={child._id} value={child._id}>{child.firstName} {child.lastName}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <button
+                            onClick={handleDownloadTranscript}
+                            className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+                        >
+                            <Download className="w-4 h-4" />
+                            Download PDF Transcript
+                        </button>
+                    </div>
+                </div>
+
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center py-24">
+                        <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4" />
+                        <p className="text-slate-500 font-bold animate-pulse">Syncing academic records...</p>
+                    </div>
+                ) : studentGrades?.terms?.length > 0 ? (
+                    <div className="space-y-12" id="transcript-area">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="glass-dark p-10 rounded-[3rem] border border-white/5 bg-indigo-600 text-white shadow-2xl shadow-indigo-500/20 relative overflow-hidden group">
+                                <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-4 font-mono">Cumulative GPA</p>
+                                <div className="flex items-baseline gap-2 mb-6">
+                                    <span className="text-6xl font-black tracking-tighter">{studentGrades.cumulativeGpa}</span>
+                                    <span className="text-sm font-bold opacity-60">/ 4.00</span>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                                        <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${(Number(studentGrades.cumulativeGpa) / 4) * 100}%` }} />
+                                    </div>
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                                        <span>Progress</span>
+                                        <span>Rank: Excellent</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-2 glass dark:bg-slate-950/50 p-10 rounded-[3rem] border border-slate-200 dark:border-white/5 flex flex-col sm:flex-row items-center justify-around gap-8">
+                                <div className="text-center sm:text-left">
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2 font-mono">Academic Status</p>
+                                    <div className="flex items-center gap-3 justify-center sm:justify-start">
+                                        <div className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-3xl font-black text-emerald-500 tracking-tight">Active / Clear</span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-2 font-medium">Eligible for merit scholarships</p>
+                                </div>
+                                <div className="h-16 w-px bg-slate-200 dark:bg-white/10 hidden sm:block" />
+                                <div className="text-center sm:text-left">
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2 font-mono">Credits Earned</p>
+                                    <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{studentGrades.totalCredits || 0}</p>
+                                    <p className="text-xs text-slate-400 mt-2 font-medium">Out of required curriculum</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="hidden pdf-only py-12 px-10 border-b-4 border-slate-900 mb-12 bg-slate-50 rounded-t-[3rem]">
+                            <h1 className="text-5xl font-black text-slate-900 uppercase tracking-tighter mb-6 text-center">Official Academic Registry</h1>
+                            <div className="grid grid-cols-2 gap-10">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Information</p>
+                                    <p className="text-2xl font-black text-slate-900">
+                                        {user?.role === 'parent' ? `${activeChild?.firstName} ${activeChild?.lastName}` : `${user?.firstName} ${user?.lastName}`}
+                                    </p>
+                                    <p className="text-sm font-bold text-indigo-600 font-mono">ADMISSION: {user?.role === 'parent' ? activeChild?.profile?.admissionNo : user?.profile?.admissionNo}</p>
+                                </div>
+                                <div className="text-right space-y-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Document Status</p>
+                                    <p className="text-2xl font-black text-emerald-600">Verified Transcript</p>
+                                    <p className="text-sm font-bold text-slate-500">Date: {new Date().toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {studentGrades.terms.map((term: any, tIdx: number) => (
+                            <div key={tIdx} className="space-y-8 animate-in fade-in slide-in-from-bottom-8" style={{ animationDelay: `${tIdx * 150}ms` }}>
+                                <div className="flex items-center gap-6">
+                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{term.name} <span className="text-indigo-500">{term.term}</span></h2>
+                                    <div className="h-px flex-1 bg-slate-200 dark:bg-white/5" />
+                                    <div className="px-5 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg">Term GPA: {term.gpa}</div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                    {term.courses.map((course: any, cIdx: number) => (
+                                        <div key={cIdx} className="glass dark:bg-slate-900/40 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 hover:border-indigo-500/50 transition-all duration-500 group relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500/20 group-hover:bg-indigo-500 transition-colors" />
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div className="w-14 h-14 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white transition-all transform group-hover:rotate-6 shadow-inner">
+                                                    <FileText className="w-7 h-7" />
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-3xl font-black text-indigo-500 group-hover:scale-110 transition-transform">{course.grade}</p>
+                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1 opacity-60">{course.percentage}% Score</p>
+                                                </div>
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{course.subjectName}</h3>
+                                            <div className="flex items-center gap-2 mb-6">
+                                                <span className="px-2 py-0.5 bg-slate-100 dark:bg-white/5 text-[9px] font-black text-slate-500 rounded uppercase tracking-tighter">{course.subjectCode}</span>
+                                                <span className="px-2 py-0.5 bg-indigo-500/10 text-[9px] font-black text-indigo-500 rounded uppercase tracking-tighter">{course.credits} Credits</span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-6 border-t border-slate-100 dark:border-white/5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Marks</span>
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{course.marksObtained} / {course.maxMarks}</span>
+                                                </div>
+                                                <button className="p-2 bg-slate-50 dark:bg-white/5 rounded-xl text-slate-400 hover:text-indigo-500 transition-colors">
+                                                    <TrendingUp className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-24 text-center glass-dark rounded-[3.5rem] border border-white/5 bg-slate-900/20">
+                        <div className="w-24 h-24 bg-slate-800/50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                            <AlertCircle className="w-12 h-12 text-slate-500" />
+                        </div>
+                        <h3 className="text-2xl font-black text-white mb-3">No Records Released</h3>
+                        <p className="text-slate-500 max-w-sm mx-auto font-medium">Academic reports are currently being processed by the registry and will be published shortly.</p>
+                    </div>
+                )}
+
+                {studentGrades?.terms?.length > 0 && (
+                    <div className="mt-12 p-8 glass dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-white/5 bg-slate-900/40 flex flex-col md:flex-row items-center justify-between gap-8 mt-16 relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-[0.03] transition-opacity" />
+                        <div className="flex items-center gap-8 relative z-10 text-center md:text-left">
+                            <div className="w-20 h-20 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center shadow-2xl shadow-indigo-600/40">
+                                <FileBadge className="w-10 h-10" />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-white tracking-tight">Export Official Record</h3>
+                                <p className="text-slate-400 mt-1 font-medium italic">Generate a high-fidelity PDF transcript for your personal records.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleDownloadTranscript}
+                            disabled={loading}
+                            className="w-full md:w-auto px-12 py-5 bg-white text-indigo-900 rounded-[2rem] font-black uppercase tracking-widest hover:bg-slate-100 transition-all shadow-2xl active:scale-95 z-10"
+                        >
+                            {loading ? (
+                                <span className="w-6 h-6 border-4 border-indigo-900/30 border-t-indigo-900 rounded-full animate-spin" />
+                            ) : 'Export as PDF'}
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -174,7 +443,6 @@ export default function GradesPage() {
                 )}
             </div>
 
-            {/* Filters */}
             <div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label className="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Exam</label>
@@ -226,7 +494,6 @@ export default function GradesPage() {
                 </div>
             </div>
 
-            {/* Results Table */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center h-full p-12">

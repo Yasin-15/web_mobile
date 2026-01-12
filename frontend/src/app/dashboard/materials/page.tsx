@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import { PermissionGuard } from '../../../components/PermissionGuard';
+import { RESOURCES, ACTIONS } from '../../../hooks/usePermission';
 
 export default function MaterialsPage() {
     const [materials, setMaterials] = useState([]);
@@ -57,12 +59,14 @@ export default function MaterialsPage() {
                     <h1 className="text-3xl font-black text-white tracking-tight">Learning Materials</h1>
                     <p className="text-slate-500 mt-1">Manage and share resources with your students.</p>
                 </div>
-                <button
-                    onClick={() => setIsUploadOpen(true)}
-                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold transition shadow-lg shadow-indigo-500/20 flex items-center gap-2"
-                >
-                    <span className="text-xl">+</span> Add Resource
-                </button>
+                <PermissionGuard resource={RESOURCES.MATERIALS} action={ACTIONS.CREATE}>
+                    <button
+                        onClick={() => setIsUploadOpen(true)}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-2xl font-bold transition shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+                    >
+                        <span className="text-xl">+</span> Add Resource
+                    </button>
+                </PermissionGuard>
             </div>
 
             {isUploadOpen && (

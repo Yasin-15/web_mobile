@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/student_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentCertificatesScreen extends StatefulWidget {
   const StudentCertificatesScreen({super.key});
@@ -24,6 +25,12 @@ class _StudentCertificatesScreenState extends State<StudentCertificatesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'My Digital Credentials',
           style: TextStyle(
@@ -169,7 +176,8 @@ class _StudentCertificatesScreenState extends State<StudentCertificatesScreen> {
                                   fontSize: 11,
                                   fontFamily: 'monospace',
                                 ),
-                              )                            ],
+                              ),
+                            ],
                           ),
                         ),
                       ],

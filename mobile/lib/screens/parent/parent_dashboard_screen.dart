@@ -4,8 +4,11 @@ import '../../providers/parent_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../login_screen.dart';
 import '../profile_screen.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class ParentDashboardScreen extends StatefulWidget {
+  const ParentDashboardScreen({super.key});
+
   @override
   _ParentDashboardScreenState createState() => _ParentDashboardScreenState();
 }
@@ -26,14 +29,20 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     final user = Provider.of<AuthProvider>(context).user;
 
     return Scaffold(
-      backgroundColor: Color(0xFF0F172A),
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Parent Portal',
               style: TextStyle(
                 color: Colors.white,
@@ -43,13 +52,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             ),
             Text(
               'Welcome, ${user?['firstName']}',
-              style: TextStyle(color: Colors.blueGrey, fontSize: 12),
+              style: const TextStyle(color: Colors.blueGrey, fontSize: 12),
             ),
           ],
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.person_outline, color: Colors.indigoAccent),
+            icon: const Icon(Icons.person_outline, color: Colors.indigoAccent),
             onPressed: () {
               Navigator.push(
                 context,
@@ -58,7 +67,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             },
           ),
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.redAccent),
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
             onPressed: () async {
               final auth = Provider.of<AuthProvider>(context, listen: false);
               await auth.logout();
@@ -71,22 +80,24 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               }
             },
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
         ],
       ),
       body: parentProvider.isLoading
-          ? Center(child: CircularProgressIndicator(color: Colors.indigoAccent))
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.indigoAccent),
+            )
           : RefreshIndicator(
               onRefresh: () => parentProvider.fetchMyChildren(),
               child: SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.all(20),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildQuickAlerts(),
-                    SizedBox(height: 30),
-                    Text(
+                    const SizedBox(height: 30),
+                    const Text(
                       'My Children',
                       style: TextStyle(
                         color: Colors.white,
@@ -94,14 +105,14 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     ...parentProvider.children
                         .map((child) => _buildChildCard(child))
-                        .toList(),
+                        ,
                     if (parentProvider.children.isEmpty)
-                      Center(
+                      const Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          padding: EdgeInsets.symmetric(vertical: 40),
                           child: Text(
                             'No linked children found.',
                             style: TextStyle(color: Colors.blueGrey),
@@ -117,7 +128,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
   Widget _buildQuickAlerts() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.indigoAccent, Colors.indigo.shade800],
@@ -125,22 +136,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow:
-            [
-                  Shadow(
-                    color: Colors.indigoAccent.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  ),
-                ]
-                .map(
-                  (s) => BoxShadow(
-                    color: s.color,
-                    blurRadius: s.blurRadius,
-                    offset: s.offset,
-                  ),
-                )
-                .toList(),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.indigoAccent.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -148,7 +150,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'All systems go!',
                   style: TextStyle(
                     color: Colors.white,
@@ -156,7 +158,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   'Your children have 0 pending alerts today.',
                   style: TextStyle(
@@ -167,7 +169,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               ],
             ),
           ),
-          Icon(Icons.verified_user, color: Colors.white, size: 40),
+          const Icon(Icons.verified_user, color: Colors.white, size: 40),
         ],
       ),
     );
@@ -175,9 +177,9 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
 
   Widget _buildChildCard(dynamic child) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Color(0xFF1E293B),
+        color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
@@ -187,7 +189,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           onTap: () => _showChildActions(child),
           borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
                 Container(
@@ -200,7 +202,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   child: Center(
                     child: Text(
                       child?['firstName']?[0] ?? 'C',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.indigoAccent,
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
@@ -208,28 +210,31 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '${child['firstName']} ${child['lastName']}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         'Class ${child['profile']?['class'] ?? 'N/A'} - ${child['profile']?['section'] ?? ''}',
-                        style: TextStyle(color: Colors.blueGrey, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.blueGrey,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.blueGrey),
+                const Icon(Icons.chevron_right, color: Colors.blueGrey),
               ],
             ),
           ),
@@ -241,8 +246,8 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   void _showChildActions(dynamic child) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Color(0xFF0F172A),
-      shape: RoundedRectangleBorder(
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
       ),
       builder: (context) => Padding(
@@ -257,13 +262,13 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                   backgroundColor: Colors.indigoAccent,
                   child: Text(
                     child['firstName'][0],
-                    style: TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Text(
                   '${child['firstName']}\'s Progress',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -271,7 +276,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _buildActionItem(
               Icons.calendar_today_rounded,
               'Attendance History',
@@ -292,7 +297,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               'Contact Teacher',
               Colors.pinkAccent,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -302,7 +307,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   Widget _buildActionItem(IconData icon, String title, Color color) {
     return ListTile(
       leading: Container(
-        padding: EdgeInsets.all(8),
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
@@ -311,9 +316,16 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       ),
       title: Text(
         title,
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      trailing: Icon(Icons.arrow_forward_ios, color: Colors.blueGrey, size: 14),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        color: Colors.blueGrey,
+        size: 14,
+      ),
       onTap: () {
         Navigator.pop(context);
         // Implement navigation to specifics

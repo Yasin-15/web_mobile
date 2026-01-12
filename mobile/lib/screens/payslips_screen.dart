@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/teacher_provider.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class PayslipsScreen extends StatefulWidget {
   const PayslipsScreen({super.key});
@@ -25,6 +26,12 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'My Payslips',
           style: TextStyle(fontWeight: FontWeight.w900),
@@ -75,7 +82,9 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
     final num netSalary = slip['netSalary'] ?? 0;
     final num basicSalary = slip['basicSalary'] ?? 0;
     final status = slip['status'] ?? 'pending';
-    final date = DateTime.parse(slip['createdAt']);
+    final dateRow = slip['createdAt'] != null
+        ? DateTime.parse(slip['createdAt'])
+        : DateTime.now();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -93,7 +102,7 @@ class _PayslipsScreenState extends State<PayslipsScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           subtitle: Text(
-            'Processed on ${DateFormat('MMM dd, yyyy').format(date)}',
+            'Processed on ${DateFormat('MMM dd, yyyy').format(dateRow)}',
             style: TextStyle(
               color: Colors.white.withOpacity(0.5),
               fontSize: 12,
