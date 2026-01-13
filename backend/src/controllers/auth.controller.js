@@ -72,14 +72,17 @@ exports.login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login error details:', {
+        console.error('Login error - FULL DETAILS:', {
             message: error.message,
             stack: error.stack,
-            name: error.name
+            name: error.name,
+            email: email,
+            tenantId: tenantId
         });
         res.status(500).json({
-            message: 'Server Error',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            message: 'Server Error during login',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

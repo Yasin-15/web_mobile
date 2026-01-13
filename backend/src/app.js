@@ -29,7 +29,24 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// CORS configuration – allow multiple origins (local dev + Vercel deployment)
+const allowedOrigins = [
+    process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
+    'https://web-mobile-5fu8-45j40d2f5-yaasiins-projects.vercel.app',
+];
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (like mobile apps or curl) or from our whitelist
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+    })
+);
 app.use(express.json());
 app.use(morgan('dev'));
 
@@ -64,19 +81,24 @@ app.use((err, req, res, next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
 
-    console.error('Error caught by middleware:', {
+    console.error('GLOBAL ERROR CAUGHT:', {
         message: err.message,
         stack: err.stack,
         statusCode: err.statusCode,
         url: req.url,
-        method: req.method
+        method: req.method,
+        body: req.body, // Log the body to see what was sent
+        name: err.name, // Add error name
+        // Add more details if available from the error object
+        ...(err.errors && { validationErrors: err.errors }), // For Mongoose validation errors
+        ...(err.code && { errorCode: err.code }), // For database errors or custom error codes
     });
 
     res.status(err.statusCode).json({
         success: false,
         status: err.status,
         message: err.message || 'Something went wrong!',
-        // Include stack trace in development mode
+        error: err.message, // Include message for easier debugging
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
     });
 });
