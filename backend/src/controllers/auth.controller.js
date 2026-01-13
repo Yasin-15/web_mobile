@@ -7,30 +7,43 @@ const jwt = require('jsonwebtoken');
 exports.login = async (req, res) => {
     const { email, password, tenantId } = req.body;
 
+    console.log('Login attempt:', { email, tenantId, hasPassword: !!password });
+
     if (!email || !password) {
+        console.log('Missing email or password');
         return res.status(400).json({ message: 'Please provide email and password' });
     }
 
     try {
+        console.log('Finding user by email:', email);
         // Find user by email (allow global search, but validate tenant context)
         const user = await User.findOne({ email });
 
         if (!user) {
+            console.log('User not found:', email);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
+
+        console.log('User found:', { id: user._id, email: user.email, role: user.role });
 
         // Check if user belongs to the requested tenant
         // Super Admins can access any tenant (conceptually) or have no tenantId
         if (tenantId && user.role !== 'super-admin' && user.tenantId !== tenantId) {
+            console.log('Tenant mismatch:', { userTenant: user.tenantId, requestedTenant: tenantId });
             return res.status(403).json({ message: 'You are not registered in this school.' });
         }
 
+        console.log('Checking password...');
         // Check password
         const isMatch = await user.matchPassword(password);
+        console.log('Password match result:', isMatch);
+
         if (!isMatch) {
+            console.log('Password mismatch for user:', email);
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
+        console.log('Generating JWT token...');
         // Sign Token
         const payload = {
             id: user._id,
@@ -38,8 +51,12 @@ exports.login = async (req, res) => {
             tenantId: user.tenantId // Embed tenant ID in token for middleware to use
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
+        const jwtSecret = process.env.JWT_SECRET || 'secret';
+        console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
 
+        const token = jwt.sign(payload, jwtSecret, { expiresIn: '1d' });
+
+        console.log('Login successful for user:', email);
         res.json({
             success: true,
             token,
@@ -55,8 +72,15 @@ exports.login = async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('Login error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        res.status(500).json({
+            message: 'Server Error',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 };
 
