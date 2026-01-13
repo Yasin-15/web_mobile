@@ -29,7 +29,8 @@ export default function LoginPage() {
                 router.push('/dashboard'); // Default for other roles
             }
         } catch (err: any) {
-            console.error('Login error response:', err.response?.data);
+            console.error('Login error FULL:', err);
+            console.error('Login error response data:', err.response?.data);
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);

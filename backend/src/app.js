@@ -29,21 +29,9 @@ const app = express();
 
 // Middleware
 app.use(helmet());
-// CORS configuration – allow multiple origins (local dev + Vercel deployment)
-const allowedOrigins = [
-    process.env.FRONTEND_ORIGIN || 'http://localhost:3000',
-    'https://web-mobile-5fu8-45j40d2f5-yaasiins-projects.vercel.app',
-];
 app.use(
     cors({
-        origin: (origin, callback) => {
-            // Allow requests with no origin (like mobile apps or curl) or from our whitelist
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
+        origin: true, // Allow all origins temporarily for debugging
         credentials: true,
     })
 );
