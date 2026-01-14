@@ -1,6 +1,8 @@
 const User = require('../models/user.model');
 const Timetable = require('../models/timetable.model');
 const Class = require('../models/class.model');
+const Exam = require('../models/exam.model');
+const Mark = require('../models/mark.model');
 const { logAction } = require('../utils/logger');
 const generatePassword = require('../utils/generatePassword');
 
@@ -320,37 +322,160 @@ exports.deleteStudent = async (req, res) => {
 // @route   POST /api/students/promote
 exports.promoteStudents = async (req, res) => {
     try {
-        const { studentIds, nextClass, nextSection } = req.body;
+        const { studentIds, currentClass, nextClass, nextSection, type } = req.body;
         const tenantId = req.user.tenantId;
 
-        if (!studentIds || !Array.isArray(studentIds)) {
-            return res.status(400).json({ message: 'Please provide an array of student IDs' });
-        }
+        console.log(`[Promote] Request: type=${type}, current=${currentClass}, next=${nextClass}`);
 
-        const result = await User.updateMany(
-            { _id: { $in: studentIds }, tenantId, role: 'student' },
-            {
-                $set: {
-                    'profile.class': nextClass,
-                    'profile.section': nextSection || 'A'
+        if (type === 'auto') {
+            if (!currentClass || !nextClass) {
+                return res.status(400).json({ message: 'Current Class and Next Class are required for auto valid promotion' });
+            }
+
+            // 1. Get Class Document to get ObjectId
+            const classDoc = await Class.findOne({ name: currentClass, tenantId });
+            if (!classDoc) {
+                console.log(`[Promote] Class not found: ${currentClass}`);
+                return res.status(404).json({ message: 'Current class not found' });
+            }
+
+            // 2. Find relevant exams (Monthly, Mid-term, Final, etc.) that are completed
+            const relevantTerms = ['First Term', 'Mid Term', 'Final Term', 'Unit Test', 'Monthly Test'];
+            const exams = await Exam.find({
+                classes: classDoc._id,
+                tenantId,
+                term: { $in: relevantTerms },
+                status: 'completed'
+            });
+
+            console.log(`[Promote] Found ${exams.length} completed exams for class ${currentClass}`);
+
+            if (exams.length === 0) {
+                return res.status(400).json({ message: 'No completed exams found for this class to evaluate promotion.' });
+            }
+
+            // 3. Find students in the current class
+            const students = await User.find({
+                'profile.class': currentClass,
+                tenantId,
+                role: 'student'
+            });
+
+            console.log(`[Promote] Found ${students.length} students in ${currentClass}`);
+
+            const promotedIds = [];
+            const retainedIds = [];
+            const debugDetails = [];
+
+            // 4. Evaluate each student
+            for (const student of students) {
+                let passedAll = true;
+                let failureReason = '';
+
+                for (const exam of exams) {
+                    // Check ALL marks for this exam (e.g., Math, Science, English)
+                    const marks = await Mark.find({
+                        student: student._id,
+                        exam: exam._id,
+                        tenantId
+                    });
+
+                    // Condition: Must have taken the exam (have marks)
+                    if (!marks || marks.length === 0) {
+                        passedAll = false;
+                        failureReason = `No marks found for exam: ${exam.name}`;
+                        break;
+                    }
+
+                    // Check if student failed ANY subject in this exam (< 50%)
+                    const failedSubject = marks.find(m => {
+                        const score = (m.marksObtained / m.maxMarks) * 100;
+                        return score < 50;
+                    });
+
+                    if (failedSubject) {
+                        passedAll = false;
+                        failureReason = `Failed subject in ${exam.name} (Score: ${failedSubject.marksObtained}/${failedSubject.maxMarks})`;
+                        break;
+                    }
+                }
+
+                if (passedAll) {
+                    promotedIds.push(student._id);
+                } else {
+                    retainedIds.push(student._id);
+                    debugDetails.push({
+                        student: `${student.firstName} ${student.lastName}`,
+                        reason: failureReason
+                    });
                 }
             }
-        );
 
-        await logAction({
-            action: 'UPDATE',
-            module: 'USER',
-            details: `Promoted ${result.modifiedCount} students to ${nextClass}`,
-            userId: req.user._id,
-            tenantId
-        });
+            console.log(`[Promote] Result: ${promotedIds.length} promoted, ${retainedIds.length} retained.`);
 
-        res.status(200).json({
-            success: true,
-            message: `Successfully promoted ${result.modifiedCount} students`,
-            modifiedCount: result.modifiedCount
-        });
+            // 5. Promote eligible students
+            if (promotedIds.length > 0) {
+                await User.updateMany(
+                    { _id: { $in: promotedIds } },
+                    {
+                        $set: {
+                            'profile.class': nextClass,
+                            'profile.section': nextSection || 'A'
+                        }
+                    }
+                );
+            }
+
+            await logAction({
+                action: 'UPDATE',
+                module: 'USER',
+                details: `Auto-promoted ${promotedIds.length} students from ${currentClass} to ${nextClass}`,
+                userId: req.user._id,
+                tenantId
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: `Promotion complete. ${promotedIds.length} promoted, ${retainedIds.length} retained.`,
+                promotedCount: promotedIds.length,
+                retainedCount: retainedIds.length,
+                promotedStudents: promotedIds,
+                retainedStudents: retainedIds,
+                failures: debugDetails // Useful for debugging on frontend
+            });
+
+        } else {
+            // Manual Promotion (Existing Logic)
+            if (!studentIds || !Array.isArray(studentIds)) {
+                return res.status(400).json({ message: 'Please provide an array of student IDs for manual promotion' });
+            }
+
+            const result = await User.updateMany(
+                { _id: { $in: studentIds }, tenantId, role: 'student' },
+                {
+                    $set: {
+                        'profile.class': nextClass,
+                        'profile.section': nextSection || 'A'
+                    }
+                }
+            );
+
+            await logAction({
+                action: 'UPDATE',
+                module: 'USER',
+                details: `Promoted ${result.modifiedCount} students to ${nextClass}`,
+                userId: req.user._id,
+                tenantId
+            });
+
+            res.status(200).json({
+                success: true,
+                message: `Successfully promoted ${result.modifiedCount} students`,
+                modifiedCount: result.modifiedCount
+            });
+        }
     } catch (error) {
+        console.error('[Promote] Error:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

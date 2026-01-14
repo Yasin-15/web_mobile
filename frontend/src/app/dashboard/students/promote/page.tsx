@@ -13,6 +13,8 @@ export default function PromoteStudentsPage() {
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [promoting, setPromoting] = useState(false);
+    const [promotionType, setPromotionType] = useState<'manual' | 'auto'>('manual');
+    const [promotionResult, setPromotionResult] = useState<any>(null);
 
     useEffect(() => {
         fetchClasses();
@@ -24,6 +26,7 @@ export default function PromoteStudentsPage() {
         } else {
             setStudents([]);
             setSelectedStudents([]);
+            setPromotionResult(null);
         }
     }, [fromClass]);
 
@@ -41,7 +44,7 @@ export default function PromoteStudentsPage() {
         try {
             const res = await api.get(`/students?class=${fromClass}`);
             setStudents(res.data.data);
-            // Default select all
+            // Default select all for manual, but for auto we don't really use this selection for logic
             setSelectedStudents(res.data.data.map((s: any) => s._id));
         } catch (error) {
             toast.error('Failed to fetch students');
@@ -71,48 +74,50 @@ export default function PromoteStudentsPage() {
             toast.error('Please select a destination class');
             return;
         }
-        if (selectedStudents.length === 0) {
+
+        if (promotionType === 'manual' && selectedStudents.length === 0) {
             toast.error('Please select students to promote');
             return;
         }
 
-        // Find class names for confirmation (optional, but good UX)
         const fromClassName = classes.find(c => c._id === fromClass)?.name;
         const toClassName = classes.find(c => c._id === toClass)?.name;
 
-        if (!confirm(`Are you sure you want to promote ${selectedStudents.length} students from ${fromClassName} to ${toClassName}?`)) {
+        if (!confirm(`Are you sure you want to ${promotionType === 'auto' ? 'AUTO ' : ''}promote students from ${fromClassName} to ${toClassName}?`)) {
             return;
         }
 
         setPromoting(true);
+        setPromotionResult(null); // Clear previous results
+
         try {
-            // Need to pass the actual class name/value expected by the backend
-            // The backend update logic sets 'profile.class': nextClass.
-            // Check if nextClass should be ID or Name. 
-            // Looking at student.controller.js: query['profile.class'] = targetClass.name;
-            // So it seems it stores Class Name, not ID. 
-            // Let's verify what the dropdown value is. `classes` contains _id and name.
-            // If I use _id in state, I need to send name to backend if backend expects name.
-
-            // Backend `promoteStudents` does: $set: { 'profile.class': nextClass, ... }
-            // Class model likely has name. References often use IDs but legacy/simple logic might use strings.
-            // In `createStudent`, it uses `profile.class` from body.
-            // In `getStudents`: if (req.query.class) query['profile.class'] = targetClass.name;
-            // It strongly suggests `profile.class` stores the Name String.
-
             const targetClassObj = classes.find(c => c._id === toClass);
 
-            await api.post('/students/promote', {
-                studentIds: selectedStudents,
-                nextClass: targetClassObj?.name, // Send Name
-                nextSection: toSection
-            });
+            const payload: any = {
+                currentClass: fromClassName, // Required for auto
+                nextClass: targetClassObj?.name,
+                nextSection: toSection,
+                type: promotionType
+            };
 
-            toast.success('Students promoted successfully');
-            setStudents([]);
-            setSelectedStudents([]);
-            setFromClass('');
-            setToClass('');
+            if (promotionType === 'manual') {
+                payload.studentIds = selectedStudents;
+            }
+
+            const res = await api.post('/students/promote', payload);
+
+            if (res.data.success) {
+                toast.success(res.data.message);
+                if (promotionType === 'auto') {
+                    setPromotionResult(res.data);
+                } else {
+                    // Manual success usually just clears
+                    setStudents([]);
+                    setSelectedStudents([]);
+                    setFromClass('');
+                    setToClass('');
+                }
+            }
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to promote students');
         } finally {
@@ -132,7 +137,70 @@ export default function PromoteStudentsPage() {
                         <p className="text-sm text-slate-500 mt-1 font-medium">Orchestrate student advancement to the next academic tier.</p>
                     </div>
                 </div>
+
+                {/* Mode Toggle */}
+                <div className="bg-slate-900/50 p-1 rounded-xl border border-white/5 flex gap-1">
+                    <button
+                        onClick={() => { setPromotionType('manual'); setPromotionResult(null); }}
+                        className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${promotionType === 'manual'
+                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                                : 'text-slate-500 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        Manual Select
+                    </button>
+                    <button
+                        onClick={() => { setPromotionType('auto'); setPromotionResult(null); }}
+                        className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${promotionType === 'auto'
+                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                                : 'text-slate-500 hover:text-white hover:bg-white/5'
+                            }`}
+                    >
+                        Auto (Exam Based)
+                    </button>
+                </div>
             </div>
+
+            {/* Results Display for Auto Promotion */}
+            {promotionResult && (
+                <div className="p-6 sm:p-8 glass-dark rounded-[2.5rem] border border-white/5 shadow-2xl space-y-6 animate-in fade-in slide-in-from-top-4">
+                    <div className="flex items-center gap-3 text-emerald-400">
+                        <CheckSquare className="w-6 h-6" />
+                        <h3 className="font-bold text-lg text-white">Promotion Results</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                            <div className="text-xs font-black text-emerald-500 uppercase tracking-widest">Promoted</div>
+                            <div className="text-2xl font-black text-white mt-1">{promotionResult.promotedCount}</div>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20">
+                            <div className="text-xs font-black text-rose-500 uppercase tracking-widest">Retained</div>
+                            <div className="text-2xl font-black text-white mt-1">{promotionResult.retainedCount}</div>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20">
+                            <div className="text-xs font-black text-indigo-500 uppercase tracking-widest">Total Processed</div>
+                            <div className="text-2xl font-black text-white mt-1">
+                                {(promotionResult.promotedCount || 0) + (promotionResult.retainedCount || 0)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {promotionResult.failures && promotionResult.failures.length > 0 && (
+                        <div className="space-y-3">
+                            <h4 className="text-sm font-bold text-rose-400 uppercase tracking-widest">Retention Details</h4>
+                            <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                                {promotionResult.failures.map((fail: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 text-xs">
+                                        <span className="font-bold text-white">{fail.student}</span>
+                                        <span className="text-rose-400 font-mono">{fail.reason}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Source Selection */}
@@ -196,8 +264,8 @@ export default function PromoteStudentsPage() {
                 </div>
             </div>
 
-            {/* Student List */}
-            {fromClass && (
+            {/* Student List (Only show in Manual Mode or for reference) */}
+            {fromClass && promotionType === 'manual' && (
                 <div className="glass-dark rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden">
                     <div className="p-6 sm:p-8 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-950/20">
                         <div className="flex items-center gap-3">
@@ -265,25 +333,34 @@ export default function PromoteStudentsPage() {
                             </table>
                         </div>
                     )}
-
-                    <div className="p-6 sm:p-8 border-t border-white/5 flex justify-end bg-slate-950/40">
-                        <button
-                            onClick={handlePromote}
-                            disabled={promoting || selectedStudents.length === 0}
-                            className="w-full sm:w-auto flex items-center justify-center gap-3 px-10 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-2xl shadow-indigo-500/40"
-                        >
-                            {promoting ? (
-                                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    <span>Initiate Promotion Protocol</span>
-                                    <ArrowRight className="w-4 h-4" />
-                                </>
-                            )}
-                        </button>
-                    </div>
                 </div>
             )}
+
+            {/* Action Bar */}
+            <div className="p-6 sm:p-8 glass-dark rounded-[2.5rem] border border-white/5 shadow-2xl flex justify-between items-center bg-slate-950/40">
+                <div className="text-xs text-slate-500 font-medium">
+                    {promotionType === 'auto'
+                        ? 'System will evaluate exam scores to determine eligibility.'
+                        : 'Manually select students to bypass exam criteria.'}
+                </div>
+                <button
+                    onClick={handlePromote}
+                    disabled={promoting || (promotionType === 'manual' && selectedStudents.length === 0) || !toClass || !fromClass}
+                    className={`flex items-center justify-center gap-3 px-10 py-4 text-white rounded-[2rem] font-black text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-2xl ${promotionType === 'auto'
+                            ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-500/40'
+                            : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-500/40'
+                        }`}
+                >
+                    {promoting ? (
+                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                        <>
+                            <span>{promotionType === 'auto' ? 'Execute Auto-Promotion' : 'Initiate Manual Promotion'}</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </>
+                    )}
+                </button>
+            </div>
         </div>
     );
 }

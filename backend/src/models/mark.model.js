@@ -24,7 +24,17 @@ const markSchema = new mongoose.Schema({
     marksObtained: {
         type: Number,
         required: true,
-        min: 0
+        min: 0,
+        validate: {
+            validator: function (value) {
+                // Check if maxMarks is available (document check)
+                if (this.maxMarks != null) {
+                    return value <= this.maxMarks;
+                }
+                return true;
+            },
+            message: 'Marks obtained cannot be greater than maximum marks'
+        }
     },
     maxMarks: {
         type: Number,
