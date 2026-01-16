@@ -11,6 +11,12 @@ const subjectSchema = new mongoose.Schema({
         required: [true, 'Please add a subject code'],
         trim: true
     },
+    gradeLevel: {
+        type: [String],
+        enum: ['elementary', 'middle', 'high'],
+        default: ['elementary', 'middle', 'high'],
+        required: true
+    },
     type: {
         type: String,
         enum: ['theory', 'practical', 'both'],

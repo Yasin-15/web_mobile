@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import { GRADE_LEVELS } from '../../utils/gradeLevels';
 import {
     Plus,
     Pencil,
@@ -11,7 +12,8 @@ import {
     FileText,
     Video,
     Image as ImageIcon,
-    Link as LinkIcon
+    Link as LinkIcon,
+    GraduationCap
 } from 'lucide-react';
 
 
@@ -22,7 +24,7 @@ export default function SubjectsPage() {
     const [loading, setLoading] = useState(true);
     const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ name: '', code: '', type: 'theory', teachers: [] as string[] });
+    const [formData, setFormData] = useState({ name: '', code: '', type: 'theory', gradeLevel: ['elementary', 'middle', 'high'] as string[], teachers: [] as string[] });
     const [editId, setEditId] = useState<string | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
     const [resourceForm, setResourceForm] = useState({ title: '', url: '', type: 'link' });
@@ -65,7 +67,7 @@ export default function SubjectsPage() {
                 await api.post('/subjects', formData);
             }
             setIsModalOpen(false);
-            setFormData({ name: '', code: '', type: 'theory', teachers: [] });
+            setFormData({ name: '', code: '', type: 'theory', gradeLevel: ['elementary', 'middle', 'high'], teachers: [] });
             setEditId(null);
             fetchData();
         } catch (err: any) {
@@ -79,6 +81,7 @@ export default function SubjectsPage() {
             name: s.name,
             code: s.code,
             type: s.type,
+            gradeLevel: s.gradeLevel || ['elementary', 'middle', 'high'],
             teachers: s.teachers?.map((t: any) => t._id || t) || []
         });
         setIsModalOpen(true);
@@ -131,7 +134,7 @@ export default function SubjectsPage() {
                 </div>
                 {canManageSubject && (
                     <button
-                        onClick={() => { setIsModalOpen(true); setEditId(null); setFormData({ name: '', code: '', type: 'theory', teachers: [] }); }}
+                        onClick={() => { setIsModalOpen(true); setEditId(null); setFormData({ name: '', code: '', type: 'theory', gradeLevel: ['elementary', 'middle', 'high'], teachers: [] }); }}
                         className="w-full sm:w-auto px-6 py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-2xl font-bold transition shadow-lg shadow-fuchsia-500/20 flex items-center justify-center gap-2"
                     >
                         <Plus className="w-5 h-5" />
@@ -254,6 +257,36 @@ export default function SubjectsPage() {
                                             {t}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <GraduationCap className="w-3 h-3" />
+                                    Grade Levels
+                                </label>
+                                <div className="p-3 bg-slate-900 border border-white/10 rounded-2xl">
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {GRADE_LEVELS.map(level => (
+                                            <label key={level.id} className="flex items-center gap-3 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.gradeLevel.includes(level.id)}
+                                                    onChange={(e) => {
+                                                        const newLevels = e.target.checked
+                                                            ? [...formData.gradeLevel, level.id]
+                                                            : formData.gradeLevel.filter(id => id !== level.id);
+                                                        setFormData({ ...formData, gradeLevel: newLevels });
+                                                    }}
+                                                    className="w-4 h-4 rounded border-white/10 bg-slate-800 accent-fuchsia-500"
+                                                />
+                                                <div>
+                                                    <span className="text-xs text-white font-semibold group-hover:text-fuchsia-400 transition block">{level.name}</span>
+                                                    <span className="text-[10px] text-slate-500">{level.grades.join(', ')}</span>
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
 

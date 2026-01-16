@@ -5,7 +5,7 @@ const { logAction } = require('../utils/logger');
 // @route   POST /api/subjects
 exports.createSubject = async (req, res) => {
     try {
-        const { name, code, type } = req.body;
+        const { name, code, type, gradeLevel } = req.body;
         const tenantId = req.user.tenantId;
 
         const subjectExists = await Subject.findOne({ code, tenantId });
@@ -17,6 +17,7 @@ exports.createSubject = async (req, res) => {
             name,
             code,
             type,
+            gradeLevel: gradeLevel || ['elementary', 'middle', 'high'],
             tenantId,
             teachers: req.body.teachers || []
         });
@@ -40,6 +41,11 @@ exports.createSubject = async (req, res) => {
 exports.getSubjects = async (req, res) => {
     try {
         const query = { tenantId: req.user.tenantId };
+
+        // Filter by grade level if provided
+        if (req.query.gradeLevel) {
+            query.gradeLevel = req.query.gradeLevel;
+        }
 
         // If requested, only show subjects assigned to the teacher in the timetable
         if (req.user.role === 'teacher' && req.query.assignedOnly === 'true') {

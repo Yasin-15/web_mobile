@@ -189,7 +189,7 @@ export default function DashboardLayout({
     const navItems = getNavItems();
 
     return (
-        <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -201,7 +201,7 @@ export default function DashboardLayout({
             {/* Sidebar */}
             <aside className={`
                 fixed inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col z-50 shadow-xl
-                transition-transform duration-300 transform lg:translate-x-0 lg:static lg:h-screen lg:shadow-sm
+                transition-transform duration-300 transform lg:translate-x-0 lg:static lg:h-full lg:shadow-sm
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `}>
                 <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -265,7 +265,7 @@ export default function DashboardLayout({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-30">
                     <div className="flex items-center gap-4">
                         <button
@@ -287,7 +287,7 @@ export default function DashboardLayout({
                         </button>
                     </div>
                 </header>
-                <div className="flex-1 overflow-x-hidden">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8">
                     {children}
                 </div>
             </main>

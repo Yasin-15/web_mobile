@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import { GRADE_LEVELS, getGradesForLevel } from '../../utils/gradeLevels';
 import {
     School,
     Plus,
@@ -10,7 +11,8 @@ import {
     DoorOpen,
     BookOpen,
     X,
-    CheckCircle2
+    CheckCircle2,
+    GraduationCap
 } from 'lucide-react';
 
 
@@ -25,6 +27,8 @@ export default function ClassesPage() {
     const [formData, setFormData] = useState({
         name: '',
         section: '',
+        gradeLevel: '',
+        grade: '',
         room: '',
         classTeacher: '',
         subjects: [] as { subject: string, teachers: string[] }[]
@@ -82,7 +86,7 @@ export default function ClassesPage() {
     };
 
     const resetForm = () => {
-        setFormData({ name: '', section: '', room: '', classTeacher: '', subjects: [] });
+        setFormData({ name: '', section: '', gradeLevel: '', grade: '', room: '', classTeacher: '', subjects: [] });
         setNewSubjectId('');
         setCurrentSubjectTeachers([]);
         setTempTeacherId('');
@@ -93,6 +97,8 @@ export default function ClassesPage() {
         setFormData({
             name: c.name,
             section: c.section,
+            gradeLevel: c.gradeLevel || '',
+            grade: c.grade || '',
             room: c.room || '',
             classTeacher: c.classTeacher?._id || '',
             subjects: c.subjects ? c.subjects.map((s: any) => ({
@@ -194,6 +200,12 @@ export default function ClassesPage() {
                             <div>
                                 <h3 className="text-2xl font-black text-white">{c.name}</h3>
                                 <p className="text-indigo-400 font-bold text-sm tracking-widest uppercase mt-1">Section {c.section}</p>
+                                {c.grade && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <GraduationCap className="w-3 h-3 text-teal-400" />
+                                        <span className="text-xs text-teal-400 font-semibold">{c.grade}</span>
+                                    </div>
+                                )}
                             </div>
                             {canManage && (
                                 <div className="flex gap-2">
@@ -261,6 +273,43 @@ export default function ClassesPage() {
                                         className="w-full px-5 py-3 bg-slate-900 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
                                         placeholder="e.g. A"
                                     />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <GraduationCap className="w-3 h-3" />
+                                        Grade Level
+                                    </label>
+                                    <select
+                                        required
+                                        value={formData.gradeLevel}
+                                        onChange={e => {
+                                            setFormData({ ...formData, gradeLevel: e.target.value, grade: '' });
+                                        }}
+                                        className="w-full px-5 py-3 bg-slate-900 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    >
+                                        <option value="">Select Grade Level</option>
+                                        {GRADE_LEVELS.map(level => (
+                                            <option key={level.id} value={level.id}>{level.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Specific Grade</label>
+                                    <select
+                                        required
+                                        value={formData.grade}
+                                        onChange={e => setFormData({ ...formData, grade: e.target.value })}
+                                        disabled={!formData.gradeLevel}
+                                        className="w-full px-5 py-3 bg-slate-900 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50 disabled:opacity-50"
+                                    >
+                                        <option value="">Select Grade</option>
+                                        {formData.gradeLevel && getGradesForLevel(formData.gradeLevel).map(grade => (
+                                            <option key={grade} value={grade}>{grade}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
 

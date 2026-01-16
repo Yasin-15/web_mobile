@@ -6,7 +6,7 @@ const { logAction } = require('../utils/logger');
 // @route   POST /api/classes
 exports.createClass = async (req, res) => {
     try {
-        const { name, section, room, classTeacher } = req.body;
+        const { name, section, room, classTeacher, gradeLevel, grade } = req.body;
         const tenantId = req.user.tenantId;
 
         // Check if class already exists in this tenant
@@ -18,6 +18,8 @@ exports.createClass = async (req, res) => {
         const newClass = await Class.create({
             name,
             section,
+            gradeLevel,
+            grade,
             room,
             classTeacher,
             tenantId,
@@ -27,7 +29,7 @@ exports.createClass = async (req, res) => {
         await logAction({
             action: 'CREATE',
             module: 'CLASS',
-            details: `Created class: ${name} - ${section}`,
+            details: `Created class: ${name} - ${section} (${grade})`,
             userId: req.user._id,
             tenantId
         });

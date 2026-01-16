@@ -11,6 +11,20 @@ const classSchema = new mongoose.Schema({
         required: [true, 'Please add a section'],
         trim: true
     },
+    gradeLevel: {
+        type: String,
+        enum: ['elementary', 'middle', 'high'],
+        required: [true, 'Please specify the grade level']
+    },
+    grade: {
+        type: String,
+        enum: [
+            'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade',
+            '6th Grade', '7th Grade', '8th Grade',
+            '9th Grade', '10th Grade', '11th Grade', '12th Grade'
+        ],
+        required: [true, 'Please specify the grade']
+    },
     room: {
         type: String,
         trim: true
