@@ -31,7 +31,8 @@ import {
     Receipt,
     Info,
     Menu,
-    X
+    X,
+    Layers
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -101,6 +102,7 @@ export default function DashboardLayout({
                 { name: 'Teachers', href: '/dashboard/teachers', icon: <Users className="w-5 h-5" /> },
                 { name: 'Classes', href: '/dashboard/classes', icon: <Building2 className="w-5 h-5" /> },
                 { name: 'Subjects', href: '/dashboard/subjects', icon: <BookOpen className="w-5 h-5" /> },
+                { name: 'Grade Setup', href: '/dashboard/grade-setup', icon: <Layers className="w-5 h-5" /> },
                 { name: 'Attendance', href: '/dashboard/attendance', icon: <CalendarCheck className="w-5 h-5" /> },
                 { name: 'Grades', href: '/dashboard/grades', icon: <BarChart3 className="w-5 h-5" /> },
                 { name: 'Fees', href: '/dashboard/finance', icon: <DollarSign className="w-5 h-5" /> },
@@ -137,6 +139,7 @@ export default function DashboardLayout({
                 { name: 'Subjects', href: '/dashboard/subjects', icon: <BookOpen className="w-5 h-5" /> },
                 { name: 'Timetable', href: '/dashboard/timetable', icon: <CalendarDays className="w-5 h-5" /> },
                 { name: 'Exams', href: '/dashboard/exams', icon: <FileText className="w-5 h-5" /> },
+                { name: 'Exam Results', href: '/dashboard/exam-results', icon: <TrendingUp className="w-5 h-5" /> },
                 { name: 'Attendance', href: '/dashboard/attendance', icon: <CalendarCheck className="w-5 h-5" /> },
                 { name: 'Grades', href: '/dashboard/grades', icon: <BarChart3 className="w-5 h-5" /> },
                 { name: 'Materials', href: '/dashboard/materials', icon: <FolderOpen className="w-5 h-5" /> },
