@@ -102,7 +102,7 @@ export default function DashboardLayout({
                 { name: 'Teachers', href: '/dashboard/teachers', icon: <Users className="w-5 h-5" /> },
                 { name: 'Classes', href: '/dashboard/classes', icon: <Building2 className="w-5 h-5" /> },
                 { name: 'Subjects', href: '/dashboard/subjects', icon: <BookOpen className="w-5 h-5" /> },
-                { name: 'Grade Setup', href: '/dashboard/grade-setup', icon: <Layers className="w-5 h-5" /> },
+                { name: 'School Grades', href: '/dashboard/school-grades', icon: <Layers className="w-5 h-5" /> },
                 { name: 'Attendance', href: '/dashboard/attendance', icon: <CalendarCheck className="w-5 h-5" /> },
                 { name: 'Grades', href: '/dashboard/grades', icon: <BarChart3 className="w-5 h-5" /> },
                 { name: 'Fees', href: '/dashboard/finance', icon: <DollarSign className="w-5 h-5" /> },

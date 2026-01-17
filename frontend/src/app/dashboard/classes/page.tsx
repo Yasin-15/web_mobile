@@ -20,6 +20,7 @@ export default function ClassesPage() {
     const [classes, setClasses] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [subjects, setSubjects] = useState([]);
+    const [tenantSettings, setTenantSettings] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -49,14 +50,16 @@ export default function ClassesPage() {
                 setUserRole(user.role);
             }
 
-            const [classRes, teacherRes, subjectRes] = await Promise.all([
+            const [classRes, teacherRes, subjectRes, tenantRes] = await Promise.all([
                 api.get('/classes'),
                 api.get('/teachers'),
-                api.get('/subjects')
+                api.get('/subjects'),
+                api.get('/tenants/me')
             ]);
             setClasses(classRes.data.data);
             setTeachers(teacherRes.data.data);
             setSubjects(subjectRes.data.data);
+            setTenantSettings(tenantRes.data.data);
         } catch (error) {
             console.error("Fetch failed", error);
         } finally {
@@ -291,9 +294,11 @@ export default function ClassesPage() {
                                         className="w-full px-5 py-3 bg-slate-900 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
                                     >
                                         <option value="">Select Grade Level</option>
-                                        {GRADE_LEVELS.map(level => (
-                                            <option key={level.id} value={level.id}>{level.name}</option>
-                                        ))}
+                                        {GRADE_LEVELS
+                                            .filter(level => !tenantSettings?.config?.gradeLevels || tenantSettings.config.gradeLevels.includes(level.id))
+                                            .map(level => (
+                                                <option key={level.id} value={level.id}>{level.name}</option>
+                                            ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">

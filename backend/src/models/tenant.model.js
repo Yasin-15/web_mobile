@@ -30,7 +30,12 @@ const tenantSchema = new mongoose.Schema({
         contactEmail: String,
         contactPhone: String,
         vision: String,
-        mission: String
+        mission: String,
+        gradeLevels: {
+            type: [String],
+            enum: ['elementary', 'middle', 'high'],
+            default: ['elementary', 'middle', 'high']
+        }
     },
     status: {
         type: String,

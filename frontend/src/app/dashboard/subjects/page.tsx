@@ -28,19 +28,22 @@ export default function SubjectsPage() {
     const [editId, setEditId] = useState<string | null>(null);
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
     const [resourceForm, setResourceForm] = useState({ title: '', url: '', type: 'link' });
+    const [tenantSettings, setTenantSettings] = useState<any>(null);
 
     const [user, setUser] = useState<any>(null);
 
     const fetchData = async () => {
         try {
-            const [subjectRes, teacherRes, classRes] = await Promise.all([
+            const [subjectRes, teacherRes, classRes, tenantRes] = await Promise.all([
                 api.get('/subjects'),
                 api.get('/teachers'),
-                api.get('/classes')
+                api.get('/classes'),
+                api.get('/tenants/me')
             ]);
             setSubjects(subjectRes.data.data);
             setAllTeachers(teacherRes.data.data);
             setAllClasses(classRes.data.data);
+            setTenantSettings(tenantRes.data.data);
         } catch (error) {
             console.error("Fetch failed", error);
         } finally {
@@ -267,25 +270,27 @@ export default function SubjectsPage() {
                                 </label>
                                 <div className="p-3 bg-slate-900 border border-white/10 rounded-2xl">
                                     <div className="grid grid-cols-1 gap-2">
-                                        {GRADE_LEVELS.map(level => (
-                                            <label key={level.id} className="flex items-center gap-3 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.gradeLevel.includes(level.id)}
-                                                    onChange={(e) => {
-                                                        const newLevels = e.target.checked
-                                                            ? [...formData.gradeLevel, level.id]
-                                                            : formData.gradeLevel.filter(id => id !== level.id);
-                                                        setFormData({ ...formData, gradeLevel: newLevels });
-                                                    }}
-                                                    className="w-4 h-4 rounded border-white/10 bg-slate-800 accent-fuchsia-500"
-                                                />
-                                                <div>
-                                                    <span className="text-xs text-white font-semibold group-hover:text-fuchsia-400 transition block">{level.name}</span>
-                                                    <span className="text-[10px] text-slate-500">{level.grades.join(', ')}</span>
-                                                </div>
-                                            </label>
-                                        ))}
+                                        {GRADE_LEVELS
+                                            .filter(level => !tenantSettings?.config?.gradeLevels || tenantSettings.config.gradeLevels.includes(level.id))
+                                            .map(level => (
+                                                <label key={level.id} className="flex items-center gap-3 cursor-pointer group">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.gradeLevel.includes(level.id)}
+                                                        onChange={(e) => {
+                                                            const newLevels = e.target.checked
+                                                                ? [...formData.gradeLevel, level.id]
+                                                                : formData.gradeLevel.filter(id => id !== level.id);
+                                                            setFormData({ ...formData, gradeLevel: newLevels });
+                                                        }}
+                                                        className="w-4 h-4 rounded border-white/10 bg-slate-800 accent-fuchsia-500"
+                                                    />
+                                                    <div>
+                                                        <span className="text-xs text-white font-semibold group-hover:text-fuchsia-400 transition block">{level.name}</span>
+                                                        <span className="text-[10px] text-slate-500">{level.grades.join(', ')}</span>
+                                                    </div>
+                                                </label>
+                                            ))}
                                     </div>
                                 </div>
                             </div>
