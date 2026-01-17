@@ -390,7 +390,7 @@ export default function ClassesPage() {
 
                                         {/* Selected Teachers Pills */}
                                         <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-950/30 rounded-xl border border-white/5">
-                                            {currentSubjectTeachers.length === 0 && <span className="text-xs text-slate-600 italic px-2 py-1">No teachers selected yet</span>}
+                                            {currentSubjectTeachers.length === 0 && <span className="text-xs text-slate-400 italic px-2 py-1">No teachers selected yet</span>}
                                             {currentSubjectTeachers.map(tId => (
                                                 <span key={tId} className="flex items-center gap-1.5 px-3 py-1 bg-indigo-500 text-white text-xs rounded-full font-bold">
                                                     {getTeacherName(tId)}
@@ -415,7 +415,7 @@ export default function ClassesPage() {
                                     {/* List of assignments */}
                                     <div className="space-y-2 pt-2">
                                         {formData.subjects.length === 0 && (
-                                            <p className="text-center text-slate-600 text-sm italic py-2">No subjects allocated yet.</p>
+                                            <p className="text-center text-slate-400 text-sm italic py-4">No subjects allocated yet.</p>
                                         )}
                                         {formData.subjects.map((sub, idx) => (
                                             <div key={idx} className="flex items-center justify-between p-3 bg-slate-800 rounded-xl border border-white/5">

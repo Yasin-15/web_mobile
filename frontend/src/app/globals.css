@@ -49,8 +49,45 @@ body {
   animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
 }
 
-@keyframes shake {
+@layer base {
+  /* Modern Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 20px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #334155;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+  }
+
+  /* Thin scrollbar for sidebar/modals */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+}
+
+@keyframes shake {
   10%,
   90% {
     transform: translate3d(-1px, 0, 0);
@@ -65,6 +102,7 @@ body {
   50%,
   70% {
     transform: translate3d(-4px, 0, 0);
+    opacity: 0.9;
   }
 
   40%,

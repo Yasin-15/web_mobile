@@ -98,11 +98,11 @@ export default function DashboardLayout({
         if (user.role === 'school-admin' || user.role === 'receptionist') {
             common.push(
                 { name: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
+                { name: 'School Grades', href: '/dashboard/school-grades', icon: <Layers className="w-5 h-5 text-teal-400" /> },
                 { name: 'Students', href: '/dashboard/students', icon: <GraduationCap className="w-5 h-5" /> },
                 { name: 'Teachers', href: '/dashboard/teachers', icon: <Users className="w-5 h-5" /> },
                 { name: 'Classes', href: '/dashboard/classes', icon: <Building2 className="w-5 h-5" /> },
                 { name: 'Subjects', href: '/dashboard/subjects', icon: <BookOpen className="w-5 h-5" /> },
-                { name: 'School Grades', href: '/dashboard/school-grades', icon: <Layers className="w-5 h-5" /> },
                 { name: 'Attendance', href: '/dashboard/attendance', icon: <CalendarCheck className="w-5 h-5" /> },
                 { name: 'Grades', href: '/dashboard/grades', icon: <BarChart3 className="w-5 h-5" /> },
                 { name: 'Fees', href: '/dashboard/finance', icon: <DollarSign className="w-5 h-5" /> },
@@ -226,7 +226,7 @@ export default function DashboardLayout({
                     </button>
                 </div>
 
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto mt-2 custom-scrollbar">
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto mt-2 custom-scrollbar scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href || (pathname.startsWith(item.href + '/') && item.href !== '/dashboard');
                         return (
