@@ -175,3 +175,77 @@ exports.resetTeacherPassword = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Bulk Register Teachers
+// @route   POST /api/teachers/bulk
+// @access  School Admin
+exports.bulkRegisterTeachers = async (req, res) => {
+    try {
+        const { teachers } = req.body;
+        const tenantId = req.user.tenantId;
+
+        if (!teachers || !Array.isArray(teachers)) {
+            return res.status(400).json({ message: 'Invalid data format. Expected an array of teachers.' });
+        }
+
+        const importResults = [];
+        for (const t of teachers) {
+            try {
+                const { firstName, lastName, email, password, designation, qualification, phone, salary } = t;
+
+                if (!firstName || !lastName || !email) {
+                    importResults.push({ email, status: 'failed', reason: 'Missing required fields' });
+                    continue;
+                }
+
+                const exists = await User.findOne({ email });
+                if (exists) {
+                    importResults.push({ email, status: 'failed', reason: 'Email already exists' });
+                    continue;
+                }
+
+                const generatedPassword = password || generatePassword();
+
+                await User.create({
+                    firstName,
+                    lastName,
+                    email,
+                    password: generatedPassword,
+                    password_plain: generatedPassword,
+                    role: 'teacher',
+                    tenantId,
+                    profile: {
+                        designation: designation || 'Teacher',
+                        qualification: qualification || '',
+                        phone: phone || '',
+                        salary: salary || ''
+                    }
+                });
+
+                importResults.push({ email, status: 'success' });
+            } catch (err) {
+                importResults.push({ email: t.email, status: 'failed', reason: err.message });
+            }
+        }
+
+        await logAction({
+            action: 'CREATE',
+            module: 'USER',
+            details: `Bulk registered ${importResults.filter(r => r.status === 'success').length} teachers`,
+            userId: req.user._id,
+            tenantId
+        });
+
+        res.status(200).json({
+            success: true,
+            results: importResults,
+            summary: {
+                total: teachers.length,
+                success: importResults.filter(r => r.status === 'success').length,
+                failed: importResults.filter(r => r.status === 'failed').length
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
