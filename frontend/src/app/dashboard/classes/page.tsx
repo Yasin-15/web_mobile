@@ -38,7 +38,8 @@ export default function ClassesPage() {
     const [userRole, setUserRole] = useState<string>('');
 
     // Temporary state for adding a new subject-teacher pair in the modal
-    const [newSubjectId, setNewSubjectId] = useState('');
+    const [currentSubjectIds, setCurrentSubjectIds] = useState<string[]>([]);
+    const [tempSubjectId, setTempSubjectId] = useState('');
     const [currentSubjectTeachers, setCurrentSubjectTeachers] = useState<string[]>([]);
     const [tempTeacherId, setTempTeacherId] = useState('');
 
@@ -90,7 +91,8 @@ export default function ClassesPage() {
 
     const resetForm = () => {
         setFormData({ name: '', section: '', gradeLevel: '', grade: '', room: '', classTeacher: '', subjects: [] });
-        setNewSubjectId('');
+        setCurrentSubjectIds([]);
+        setTempSubjectId('');
         setCurrentSubjectTeachers([]);
         setTempTeacherId('');
     };
@@ -123,6 +125,17 @@ export default function ClassesPage() {
         }
     };
 
+    const addSubjectToList = () => {
+        if (!tempSubjectId) return;
+        if (currentSubjectIds.includes(tempSubjectId)) return;
+        setCurrentSubjectIds([...currentSubjectIds, tempSubjectId]);
+        setTempSubjectId('');
+    };
+
+    const removeSubjectFromList = (sId: string) => {
+        setCurrentSubjectIds(currentSubjectIds.filter(id => id !== sId));
+    };
+
     const addTeacherToCurrentSubject = () => {
         if (!tempTeacherId) return;
         if (currentSubjectTeachers.includes(tempTeacherId)) return;
@@ -135,22 +148,32 @@ export default function ClassesPage() {
     };
 
     const addSubjectToForm = () => {
-        if (!newSubjectId) return;
-        if (currentSubjectTeachers.length === 0) {
-            alert("Please assign at least one teacher to this subject.");
+        if (currentSubjectIds.length === 0 || currentSubjectTeachers.length === 0) {
+            alert("Please select at least one subject and one teacher.");
             return;
         }
-        // prevent duplicates
-        if (formData.subjects.some(s => s.subject === newSubjectId)) {
-            alert("Subject already added to this class");
+
+        const newAllocations = currentSubjectIds
+            .filter(subId => !formData.subjects.some(s => s.subject === subId))
+            .map(subId => ({
+                subject: subId,
+                teachers: [...currentSubjectTeachers]
+            }));
+
+        if (newAllocations.length === 0) {
+            alert("Selected subjects are already added to this class.");
             return;
         }
+
         setFormData({
             ...formData,
-            subjects: [...formData.subjects, { subject: newSubjectId, teachers: currentSubjectTeachers }]
+            subjects: [...formData.subjects, ...newAllocations]
         });
-        setNewSubjectId('');
+
+        // Clear temporary selections
+        setCurrentSubjectIds([]);
         setCurrentSubjectTeachers([]);
+        setTempSubjectId('');
         setTempTeacherId('');
     };
 
@@ -349,22 +372,46 @@ export default function ClassesPage() {
                                 </label>
 
                                 <div className="p-4 bg-slate-900/50 rounded-2xl border border-white/5 space-y-4">
-                                    {/* Subject Selection */}
+                                    {/* Multi-Subject Selection */}
                                     <div className="space-y-2">
-                                        <label className="text-[10px] uppercase text-slate-500 font-bold">1. Select Subject</label>
-                                        <select
-                                            value={newSubjectId} onChange={e => setNewSubjectId(e.target.value)}
-                                            className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
-                                        >
-                                            <option value="">Choose a Subject...</option>
-                                            {subjects.map((s: any) => (
-                                                <option key={s._id} value={s._id}>{s.name} ({s.code})</option>
+                                        <label className="text-[10px] uppercase text-slate-500 font-bold">1. Select Subjects</label>
+                                        <div className="flex flex-col sm:row gap-2">
+                                            <select
+                                                value={tempSubjectId} onChange={e => setTempSubjectId(e.target.value)}
+                                                className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-indigo-500"
+                                            >
+                                                <option value="">Choose a Subject...</option>
+                                                {subjects.map((s: any) => (
+                                                    <option key={s._id} value={s._id} disabled={currentSubjectIds.includes(s._id) || formData.subjects.some(fs => fs.subject === s._id)}>
+                                                        {s.name} ({s.code})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={addSubjectToList}
+                                                disabled={!tempSubjectId}
+                                                className="w-full sm:w-auto px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-sm font-bold rounded-xl transition disabled:opacity-50"
+                                            >
+                                                + Add Subject
+                                            </button>
+                                        </div>
+                                        {/* Selected Subjects Pills */}
+                                        <div className="flex flex-wrap gap-2 min-h-[40px] p-2 bg-slate-950/30 rounded-xl border border-white/5">
+                                            {currentSubjectIds.length === 0 && <span className="text-xs text-slate-400 italic px-2 py-1">No subjects selected yet</span>}
+                                            {currentSubjectIds.map(sId => (
+                                                <span key={sId} className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 text-white text-xs rounded-full font-bold">
+                                                    {getSubjectName(sId)}
+                                                    <button type="button" onClick={() => removeSubjectFromList(sId)} className="hover:text-emerald-200">
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </span>
                                             ))}
-                                        </select>
+                                        </div>
                                     </div>
 
                                     {/* Teacher Multi-Select */}
-                                    <div className={`space-y-2 transition-all ${!newSubjectId ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <div className={`space-y-2 transition-all ${currentSubjectIds.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                                         <label className="text-[10px] uppercase text-slate-500 font-bold">2. Assign Teachers</label>
                                         <div className="flex flex-col sm:row gap-2">
                                             <select
@@ -397,7 +444,6 @@ export default function ClassesPage() {
                                                     <button type="button" onClick={() => removeTeacherFromCurrentSubject(tId)} className="hover:text-red-200">
                                                         <X className="w-3 h-3" />
                                                     </button>
-
                                                 </span>
                                             ))}
                                         </div>
@@ -406,10 +452,10 @@ export default function ClassesPage() {
                                     <button
                                         type="button"
                                         onClick={addSubjectToForm}
-                                        disabled={!newSubjectId || currentSubjectTeachers.length === 0}
+                                        disabled={currentSubjectIds.length === 0 || currentSubjectTeachers.length === 0}
                                         className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition"
                                     >
-                                        Confirm Subject Allocation
+                                        Confirm Bulk Allocation
                                     </button>
 
                                     {/* List of assignments */}
