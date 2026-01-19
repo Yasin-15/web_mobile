@@ -103,7 +103,7 @@ export default function TimetablePage() {
         const fetchTimetable = async () => {
             if (viewMode === 'class' && !selectedClassId) {
                 const initial: any = {};
-                DAYS.forEach(day => { initial[day] = {}; TIME_SLOTS.forEach((_, idx) => { initial[day][idx] = { subject: '', teacher: '' }; }); });
+                DAYS.forEach(day => { initial[day] = {}; TIME_SLOTS.forEach((_, idx) => { initial[day][idx] = { subject: '', teachers: [] }; }); });
                 setSchedule(initial);
                 return;
             }
@@ -120,7 +120,7 @@ export default function TimetablePage() {
                 DAYS.forEach(day => {
                     newSchedule[day] = {};
                     TIME_SLOTS.forEach((_, idx) => {
-                        newSchedule[day][idx] = { subject: '', teacher: '' };
+                        newSchedule[day][idx] = { subject: '', teachers: [] };
                     });
                 });
 
@@ -130,9 +130,9 @@ export default function TimetablePage() {
                         if (slotIndex !== -1) {
                             newSchedule[slot.day][slotIndex] = {
                                 subject: slot.subject?._id || slot.subject,
-                                teacher: slot.teacher?._id || slot.teacher,
+                                teachers: slot.teachers ? slot.teachers.map((t: any) => t._id || t) : [],
                                 subjectName: slot.subject?.name,
-                                teacherName: slot.teacher ? `${slot.teacher?.firstName} ${slot.teacher?.lastName}` : '',
+                                teacherNames: slot.teachers ? slot.teachers.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ') : '',
                                 className: slot.class?.name ? `${slot.class.name}-${slot.class.section}` : ''
                             };
                         }
@@ -174,16 +174,19 @@ export default function TimetablePage() {
         }).filter(Boolean);
     };
 
-    const handleCellChange = (day: string, slotIdx: number, field: string, value: string) => {
+    const handleCellChange = (day: string, slotIdx: number, field: string, value: any) => {
         setSchedule((prev: any) => {
             const newCell = { ...prev[day][slotIdx], [field]: value };
             if (field === 'subject') {
                 const sub = subjects.find(s => s._id === value);
                 newCell.subjectName = sub?.name;
+                newCell.teachers = []; // Reset teachers when subject changes
+                newCell.teacherNames = '';
             }
-            if (field === 'teacher') {
-                const teach = teachers.find(t => t._id === value);
-                newCell.teacherName = teach ? `${teach.firstName} ${teach.lastName}` : '';
+            if (field === 'teachers') {
+                const tIds = Array.isArray(value) ? value : [value];
+                const selectedTeachers = teachers.filter(t => tIds.includes(t._id));
+                newCell.teacherNames = selectedTeachers.map(t => `${t.firstName} ${t.lastName}`).join(', ');
             }
             return { ...prev, [day]: { ...prev[day], [slotIdx]: newCell } };
         });
@@ -205,8 +208,13 @@ export default function TimetablePage() {
             const { data: globalData } = await api.get('/timetable');
             const globalSlots = globalData.data;
 
-            const isTeacherBusy = (teacherId: string, day: string, start: string) => {
-                return globalSlots.some((s: any) => s.teacher?._id === teacherId && s.day === day && s.startTime === start && s.class?._id !== selectedClassId);
+            const isTeacherBusy = (teacherIds: string[], day: string, start: string) => {
+                return globalSlots.some((s: any) =>
+                    s.teachers?.some((t: any) => teacherIds.includes(t._id || t)) &&
+                    s.day === day &&
+                    s.startTime === start &&
+                    s.class?._id !== selectedClassId
+                );
             };
 
             const classSubjects = [...currentClass.subjects];
@@ -220,7 +228,7 @@ export default function TimetablePage() {
 
                 TIME_SLOTS.forEach((ts, idx) => {
                     if (ts.type === 'break') {
-                        newSchedule[day][idx] = { subject: '', teacher: '' };
+                        newSchedule[day][idx] = { subject: '', teachers: [] };
                         return;
                     }
 
@@ -228,23 +236,23 @@ export default function TimetablePage() {
                     let attempts = 0;
                     while (!match && attempts < dayPool.length) {
                         const candidate = dayPool[poolIdx % dayPool.length];
-                        const tId = candidate.teachers?.[0]?._id || candidate.teachers?.[0];
+                        const tIds = candidate.teachers?.map((t: any) => t._id || t) || [];
                         const sId = candidate.subject?._id || candidate.subject;
 
-                        if (!isTeacherBusy(tId, day, ts.start)) {
+                        if (!isTeacherBusy(tIds, day, ts.start)) {
                             const sub = subjects.find(s => s._id === sId);
-                            const teach = teachers.find(t => t._id === tId);
+                            const selectedTeachers = teachers.filter(t => tIds.includes(t._id));
                             match = {
                                 subject: sub?._id || '',
-                                teacher: teach?._id || '',
+                                teachers: tIds,
                                 subjectName: sub?.name,
-                                teacherName: teach ? `${teach.firstName} ${teach.lastName}` : ''
+                                teacherNames: selectedTeachers.map(t => `${t.firstName} ${t.lastName}`).join(', ')
                             };
                         }
                         poolIdx++;
                         attempts++;
                     }
-                    newSchedule[day][idx] = match || { subject: '', teacher: '', subjectName: 'Self-Study', teacherName: 'Unsupervised' };
+                    newSchedule[day][idx] = match || { subject: '', teachers: [], subjectName: 'Self-Study', teacherNames: 'Unsupervised' };
                 });
             });
 
@@ -271,13 +279,13 @@ export default function TimetablePage() {
             DAYS.forEach(day => {
                 TIME_SLOTS.forEach((ts, idx) => {
                     const cell = schedule[day][idx];
-                    if (cell.subject && cell.teacher) {
+                    if (cell.subject && cell.teachers?.length > 0) {
                         slotsToSave.push({
                             day,
                             startTime: ts.start,
                             endTime: ts.end,
                             subjectId: cell.subject,
-                            teacherId: cell.teacher
+                            teacherIds: cell.teachers
                         });
                     }
                 });
@@ -524,17 +532,39 @@ export default function TimetablePage() {
                                                                 </select>
                                                             </div>
                                                             <div className="space-y-1">
-                                                                <label className="text-[9px] font-black text-slate-600 uppercase px-1">Assignee</label>
-                                                                <select
-                                                                    value={cell?.teacher || ''}
-                                                                    onChange={(e) => handleCellChange(day, idx, 'teacher', e.target.value)}
-                                                                    className="w-full text-[10px] font-bold p-3.5 bg-white/[0.03] border border-white/10 rounded-2xl text-indigo-300/80 outline-none focus:ring-2 focus:ring-indigo-500/50 shadow-xl"
-                                                                >
-                                                                    <option value="" className="bg-slate-900 text-slate-600 px-2 italic">OPEN</option>
-                                                                    {getAvailableTeachersForSubject(cell?.subject).map((t: any) => (
-                                                                        <option key={t._id} value={t._id} className="bg-slate-900">{t.firstName} {t.lastName}</option>
-                                                                    ))}
-                                                                </select>
+                                                                <label className="text-[9px] font-black text-slate-600 uppercase px-1">Assignees</label>
+                                                                <div className="flex flex-col gap-1.5">
+                                                                    <div className="flex flex-wrap gap-1 p-1 bg-white/5 rounded-lg">
+                                                                        {cell?.teachers?.map((tId: string) => (
+                                                                            <span key={tId} className="px-2 py-0.5 bg-indigo-500 text-[8px] font-bold text-white rounded-full flex items-center gap-1">
+                                                                                {teachers.find(t => t._id === tId)?.firstName}
+                                                                                <button
+                                                                                    onClick={() => handleCellChange(day, idx, 'teachers', cell.teachers.filter((id: string) => id !== tId))}
+                                                                                    className="hover:text-red-200"
+                                                                                >
+                                                                                    ×
+                                                                                </button>
+                                                                            </span>
+                                                                        ))}
+                                                                        {(!cell?.teachers || cell.teachers.length === 0) && <span className="text-[8px] text-slate-500 italic px-1">None</span>}
+                                                                    </div>
+                                                                    <select
+                                                                        value=""
+                                                                        onChange={(e) => {
+                                                                            if (e.target.value && !cell.teachers?.includes(e.target.value)) {
+                                                                                handleCellChange(day, idx, 'teachers', [...(cell.teachers || []), e.target.value]);
+                                                                            }
+                                                                        }}
+                                                                        className="w-full text-[10px] font-bold p-2 bg-white/[0.03] border border-white/10 rounded-xl text-indigo-300/80 outline-none focus:ring-1 focus:ring-indigo-500/50"
+                                                                    >
+                                                                        <option value="" className="bg-slate-900 text-slate-600">Add Teacher...</option>
+                                                                        {getAvailableTeachersForSubject(cell?.subject).map((t: any) => (
+                                                                            <option key={t._id} value={t._id} className="bg-slate-900" disabled={cell?.teachers?.includes(t._id)}>
+                                                                                {t.firstName} {t.lastName}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ) : (
@@ -549,7 +579,7 @@ export default function TimetablePage() {
                                                                         </div>
                                                                         <div className="flex items-center gap-2.5 text-white/60">
                                                                             <User size={14} className="shrink-0 opacity-40" />
-                                                                            <span className="text-[11px] font-bold line-clamp-1 italic tracking-tight">{viewMode === 'personal' ? cell.className : cell.teacherName}</span>
+                                                                            <span className="text-[11px] font-bold line-clamp-none italic tracking-tight">{viewMode === 'personal' ? cell.className : cell.teacherNames}</span>
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex items-center justify-between mt-5 relative z-10">

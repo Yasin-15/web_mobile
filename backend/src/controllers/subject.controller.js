@@ -50,7 +50,7 @@ exports.getSubjects = async (req, res) => {
         // If requested, only show subjects assigned to the teacher in the timetable
         if (req.user.role === 'teacher' && req.query.assignedOnly === 'true') {
             const Timetable = require('../models/timetable.model');
-            const slots = await Timetable.find({ teacher: req.user._id, tenantId: req.user.tenantId });
+            const slots = await Timetable.find({ teachers: req.user._id, tenantId: req.user.tenantId });
             const subjectIds = slots.map(s => s.subject.toString());
             query._id = { $in: subjectIds };
         }

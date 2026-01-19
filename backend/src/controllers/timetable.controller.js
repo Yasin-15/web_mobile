@@ -14,21 +14,26 @@ exports.validateTimetableSlot = async (req, res) => {
 
         const conflicts = [];
 
-        // 1. Teacher Conflict
-        const teacherConflict = await Timetable.findOne({
-            tenantId,
-            teacher: teacherId,
-            day,
-            _id: { $ne: excludedId },
-            $or: [
-                { startTime: { $lt: endTime, $gte: startTime } },
-                { endTime: { $gt: startTime, $lte: endTime } },
-                { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
-            ]
-        }).populate('teacher', 'firstName lastName').populate('class', 'name section');
+        // 1. Teacher Conflicts
+        const teacherIds = Array.isArray(teacherId) ? teacherId : [teacherId];
 
-        if (teacherConflict) {
-            conflicts.push(`Teacher conflict: ${teacherConflict.teacher.firstName} is already teaching Class ${teacherConflict.class.name}-${teacherConflict.class.section} during this time.`);
+        for (const tid of teacherIds) {
+            const teacherConflict = await Timetable.findOne({
+                tenantId,
+                teachers: tid,
+                day,
+                _id: { $ne: excludedId },
+                $or: [
+                    { startTime: { $lt: endTime, $gte: startTime } },
+                    { endTime: { $gt: startTime, $lte: endTime } },
+                    { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
+                ]
+            }).populate('teachers', 'firstName lastName').populate('class', 'name section');
+
+            if (teacherConflict) {
+                const conflictingTeacher = teacherConflict.teachers.find(t => t._id.toString() === tid);
+                conflicts.push(`Teacher conflict: ${conflictingTeacher?.firstName || 'A teacher'} is already teaching Class ${teacherConflict.class.name}-${teacherConflict.class.section} during this time.`);
+            }
         }
 
         // 2. Class Conflict
@@ -68,7 +73,8 @@ exports.validateTimetableSlot = async (req, res) => {
         }
 
         // 4. Resource Optimization: Check teacher's total weekly load
-        const teacherSlots = await Timetable.find({ teacher: teacherId, tenantId });
+        const primaryTeacherId = Array.isArray(teacherId) ? teacherId[0] : teacherId;
+        const teacherSlots = await Timetable.find({ teachers: primaryTeacherId, tenantId });
         let totalMinutes = 0;
         teacherSlots.forEach(s => {
             const start = s.startTime.split(':').map(Number);
@@ -96,21 +102,26 @@ exports.addTimetableSlot = async (req, res) => {
         const tenantId = req.user.tenantId;
 
         // Perform validation
-        const teacherConflict = await Timetable.findOne({
-            tenantId,
-            teacher: teacherId,
-            day,
-            $or: [
-                { startTime: { $lt: endTime, $gte: startTime } },
-                { endTime: { $gt: startTime, $lte: endTime } },
-                { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
-            ]
-        }).populate('teacher', 'firstName lastName');
+        const teacherIds = Array.isArray(teacherId) ? teacherId : [teacherId];
 
-        if (teacherConflict) {
-            return res.status(400).json({
-                message: `Instructor conflict: ${teacherConflict.teacher.firstName} ${teacherConflict.teacher.lastName} is already scheduled elsewhere during this window.`
-            });
+        for (const tid of teacherIds) {
+            const teacherConflict = await Timetable.findOne({
+                tenantId,
+                teachers: tid,
+                day,
+                $or: [
+                    { startTime: { $lt: endTime, $gte: startTime } },
+                    { endTime: { $gt: startTime, $lte: endTime } },
+                    { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
+                ]
+            }).populate('teachers', 'firstName lastName');
+
+            if (teacherConflict) {
+                const conflictingTeacher = teacherConflict.teachers.find(t => t._id.toString() === tid);
+                return res.status(400).json({
+                    message: `Instructor conflict: ${conflictingTeacher?.firstName || 'A teacher'} is already scheduled elsewhere during this window.`
+                });
+            }
         }
 
         const classConflict = await Timetable.findOne({
@@ -145,7 +156,7 @@ exports.addTimetableSlot = async (req, res) => {
         const slot = await Timetable.create({
             class: classId,
             subject: subjectId,
-            teacher: teacherId,
+            teachers: teacherIds,
             day,
             startTime,
             endTime,
@@ -176,7 +187,7 @@ exports.getClassTimetable = async (req, res) => {
             tenantId: req.user.tenantId
         })
             .populate('subject', 'name code')
-            .populate('teacher', 'firstName lastName')
+            .populate('teachers', 'firstName lastName')
             .sort({ day: 1, startTime: 1 });
 
         res.status(200).json({ success: true, data: slots });
@@ -217,7 +228,7 @@ exports.getStudentTimetable = async (req, res) => {
             tenantId: req.user.tenantId
         })
             .populate('subject', 'name code')
-            .populate('teacher', 'firstName lastName')
+            .populate('teachers', 'firstName lastName')
             .sort({ day: 1, startTime: 1 });
 
         res.status(200).json({ success: true, data: slots });
@@ -231,7 +242,7 @@ exports.getStudentTimetable = async (req, res) => {
 exports.getTeacherTimetable = async (req, res) => {
     try {
         const slots = await Timetable.find({
-            teacher: req.user._id,
+            teachers: req.user._id,
             tenantId: req.user.tenantId
         })
             .populate('subject', 'name code')
@@ -271,7 +282,7 @@ exports.deleteTimetableSlot = async (req, res) => {
 exports.getTeacherWorkload = async (req, res) => {
     try {
         const slots = await Timetable.find({
-            teacher: req.user._id,
+            teachers: req.user._id,
             tenantId: req.user.tenantId
         });
 
@@ -317,7 +328,7 @@ exports.bulkUpdateClassTimetable = async (req, res) => {
         const newSlots = slots.map(slot => ({
             class: classId,
             subject: slot.subjectId,
-            teacher: slot.teacherId,
+            teachers: Array.isArray(slot.teacherIds) ? slot.teacherIds : (slot.teacherId ? [slot.teacherId] : []),
             day: slot.day,
             startTime: slot.startTime,
             endTime: slot.endTime,
@@ -351,7 +362,7 @@ exports.getAllTimetable = async (req, res) => {
     try {
         const slots = await Timetable.find({ tenantId: req.user.tenantId })
             .populate('subject', 'name')
-            .populate('teacher', 'firstName lastName')
+            .populate('teachers', 'firstName lastName')
             .populate('class', 'name section');
         res.status(200).json({ success: true, data: slots });
     } catch (error) {

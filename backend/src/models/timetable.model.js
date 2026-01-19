@@ -11,11 +11,11 @@ const timetableSchema = new mongoose.Schema({
         ref: 'Subject',
         required: true
     },
-    teacher: {
+    teachers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
-    },
+    }],
     day: {
         type: String,
         enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],

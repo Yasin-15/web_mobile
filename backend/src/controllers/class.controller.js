@@ -49,7 +49,7 @@ exports.getClasses = async (req, res) => {
 
         // If user is a teacher, return classes where they are class teacher OR teach a subject
         if (role === 'teacher') {
-            const slots = await Timetable.find({ teacher: req.user._id, tenantId: req.user.tenantId });
+            const slots = await Timetable.find({ teachers: req.user._id, tenantId: req.user.tenantId });
             const classIdsFromTimetable = slots.map(s => s.class.toString());
 
             query.$or = [
