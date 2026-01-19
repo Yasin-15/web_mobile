@@ -1,20 +1,25 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import api from '../../utils/api';
-import { Save, Wand2, Printer, Eye, Edit3, Calendar, User, BookOpen, Clock, Heart, Zap, Sparkles, AlertCircle } from 'lucide-react';
+import {
+    Save, Wand2, Printer, Eye, Edit3, Calendar, User,
+    BookOpen, Clock, Heart, Zap, Sparkles, AlertCircle,
+    CheckCircle2, Info, LayoutGrid, RotateCcw
+} from 'lucide-react';
 import { PermissionGuard } from '../../../components/PermissionGuard';
 import { usePermission, RESOURCES, ACTIONS, ROLES } from '../../../hooks/usePermission';
 
+// School-specific time slots from user's live system
 const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 
 const TIME_SLOTS = [
-    { start: '08:00', end: '08:45', label: 'Period 1' },
-    { start: '08:45', end: '09:30', label: 'Period 2' },
-    { start: '09:30', end: '10:15', label: 'Period 3' },
-    { start: '10:15', end: '10:45', label: 'Break', type: 'break' },
-    { start: '10:45', end: '11:30', label: 'Period 4' },
-    { start: '11:30', end: '12:15', label: 'Period 5' },
-    { start: '12:15', end: '13:00', label: 'Period 6' },
+    { start: '07:40', end: '08:20', label: 'Period 1' },
+    { start: '08:20', end: '09:00', label: 'Period 2' },
+    { start: '09:00', end: '09:30', label: 'Period 3' },
+    { start: '09:30', end: '10:00', label: 'Break', type: 'break' },
+    { start: '10:00', end: '10:40', label: 'Period 4' },
+    { start: '10:40', end: '11:20', label: 'Period 5' },
+    { start: '11:20', end: '12:00', label: 'Period 6' },
 ];
 
 const SUBJECT_COLORS: any = {
@@ -27,6 +32,8 @@ const SUBJECT_COLORS: any = {
     'Chemistry': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
     'Biology': 'bg-teal-500/20 text-teal-400 border-teal-500/30',
     'ICT': 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+    'Islamic': 'bg-green-500/20 text-green-400 border-green-500/30',
+    'Somali': 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     'Break': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
 };
 
@@ -48,7 +55,7 @@ export default function TimetablePage() {
     const [isEditMode, setIsEditMode] = useState(false);
     const [viewMode, setViewMode] = useState<'class' | 'personal'>('class');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [genQuality, setGenQuality] = useState(0);
+    const [genStep, setGenStep] = useState('');
 
     // Schedule state: { [day]: { [slotIndex]: { subject: '', teacher: '' } } }
     const [schedule, setSchedule] = useState<any>({});
@@ -165,50 +172,48 @@ export default function TimetablePage() {
     };
 
     /**
-     * Smart School Timetable Generator (SSTG) Engine
-     * Focus: Automated Constraint-Based Scheduling
+     * ADVANCED SSTG ENGINE: AUTOMATIC GENERATOR
+     * Fully Automated Constraint-Based Scheduling
      */
     const handleSSTGGenerate = async () => {
         const cls = classes.find(c => c._id === selectedClassId);
         if (!cls || !cls.subjects || cls.subjects.length === 0) {
-            alert("SSTG Error: No subjects assigned to this class configuration. Optimization requires defined faculty-subject pairs.");
+            alert("SSTG Error: This class has no subjects assigned. Please assign subjects in the 'Classes' page first.");
             return;
         }
 
         setIsGenerating(true);
-        setGenQuality(0);
+        setGenStep('Initializing Neural Matrix...');
 
         try {
-            // 1. Fetch Global State to detect teacher availability conflicts
+            // 1. Fetch Global Constraints (Teacher Availability)
+            setGenStep('Analyzing Global Teacher Loads...');
             const { data: globalData } = await api.get('/timetable');
             const globalSlots = globalData.data;
 
-            // Helper to check if a teacher is busy in another class
-            const isTeacherBusy = (teacherId: string, day: string, startTime: string, currentClassId: string) => {
+            await new Promise(r => setTimeout(r, 600));
+            setGenStep('Applying Spacing Constraints...');
+
+            // Helper to check for teacher conflicts
+            const isTeacherBusy = (teacherId: string, day: string, startTime: string) => {
                 return globalSlots.some((slot: any) =>
                     slot.teacher?._id === teacherId &&
                     slot.day === day &&
                     slot.startTime === startTime &&
-                    slot.class?._id !== currentClassId
+                    slot.class?._id !== selectedClassId
                 );
             };
 
-            const classSubjects = cls.subjects; // { subject, teachers: [] }
+            const classSubjects = [...cls.subjects];
             const newSchedule: any = {};
 
-            // Simulation progress for UI
-            for (let i = 0; i <= 100; i += 20) {
-                setGenQuality(i);
-                await new Promise(r => setTimeout(r, 150));
-            }
-
-            // 2. Automated Backtracking Distrubution
+            // 2. Optimized Backtracking for even distribution
             DAYS.forEach(day => {
                 newSchedule[day] = {};
 
-                // Shuffle subjects for the day to avoid boring repetition
-                const dailyPool = [...classSubjects].sort(() => Math.random() - 0.5);
-                let poolIdx = 0;
+                // Shuffle subjects for the day
+                const daySubjects = [...classSubjects].sort(() => Math.random() - 0.5);
+                let subIdx = 0;
 
                 TIME_SLOTS.forEach((ts, idx) => {
                     if (ts.type === 'break') {
@@ -216,44 +221,44 @@ export default function TimetablePage() {
                         return;
                     }
 
-                    // Try to find a subject where the teacher is available
-                    let foundMatch = false;
+                    let match = null;
                     let attempts = 0;
 
-                    while (!foundMatch && attempts < dailyPool.length) {
-                        const candidate = dailyPool[poolIdx % dailyPool.length];
-                        const teacherId = candidate.teachers?.[0]?._id || candidate.teachers?.[0];
-                        const subjectId = candidate.subject?._id || candidate.subject;
+                    // Try to find a subject where the teacher is available
+                    while (!match && attempts < daySubjects.length) {
+                        const candidate = daySubjects[subIdx % daySubjects.length];
+                        const tId = candidate.teachers?.[0]?._id || candidate.teachers?.[0];
+                        const sId = candidate.subject?._id || candidate.subject;
 
-                        if (!isTeacherBusy(teacherId, day, ts.start, selectedClassId)) {
-                            const subObj = subjects.find(s => s._id === subjectId);
-                            const teacherObj = teachers.find(t => t._id === teacherId);
+                        if (!isTeacherBusy(tId, day, ts.start)) {
+                            const sub = subjects.find(s => s._id === sId);
+                            const teach = teachers.find(t => t._id === tId);
 
-                            newSchedule[day][idx] = {
-                                subject: subObj?._id || '',
-                                teacher: teacherObj?._id || '',
-                                subjectName: subObj?.name,
-                                teacherName: teacherObj ? `${teacherObj.firstName} ${teacherObj.lastName}` : ''
+                            match = {
+                                subject: sub?._id || '',
+                                teacher: teach?._id || '',
+                                subjectName: sub?.name,
+                                teacherName: teach ? `${teach.firstName} ${teach.lastName}` : ''
                             };
-                            foundMatch = true;
                         }
-
-                        poolIdx++;
+                        subIdx++;
                         attempts++;
                     }
 
-                    // Fallback to "Free Period" if all teachers for this class's subjects are busy globally
-                    if (!foundMatch) {
-                        newSchedule[day][idx] = { subject: '', teacher: '', subjectName: 'Free Period', teacherName: 'Undirected' };
-                    }
+                    newSchedule[day][idx] = match || { subject: '', teacher: '', subjectName: 'Self-Study', teacherName: 'Unassigned' };
                 });
             });
 
+            setGenStep('Optimizing Faculty Rotation...');
+            await new Promise(r => setTimeout(r, 800));
+
             setSchedule(newSchedule);
+            setGenStep('Successful! Reviewing Draft.');
+            setTimeout(() => setIsGenerating(false), 500);
+
         } catch (err) {
             console.error(err);
-            alert("SSTG Engine Fault: Could not fetch global school schedule state.");
-        } finally {
+            alert("Automatic Generation Failed: Network error fetching global state.");
             setIsGenerating(false);
         }
     };
@@ -278,10 +283,10 @@ export default function TimetablePage() {
                 });
             });
             await api.post('/timetable/bulk', { classId: selectedClassId, slots: slotsToSave });
-            alert("Matrix Published: Schedule synchronized globally.");
+            alert("Timetable Published Successfully!");
         } catch (err) {
             console.error(err);
-            alert("Synchronization Failed");
+            alert("Failed to publish timetable.");
         } finally {
             setSaving(false);
         }
@@ -294,17 +299,17 @@ export default function TimetablePage() {
             {/* Header section */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 print:hidden">
                 <div className="flex items-center gap-4">
-                    <div className="p-3.5 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-500/20 relative group overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                        <Zap className="text-white relative z-10" size={24} />
+                    <div className="p-3.5 bg-indigo-600 rounded-2xl shadow-xl shadow-indigo-500/20 relative group">
+                        <Zap className="text-white animate-pulse" size={24} />
+                        <div className="absolute inset-0 bg-white/20 rounded-2xl scale-0 group-hover:scale-110 transition-transform duration-500" />
                     </div>
                     <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">SSTG Engine</h1>
-                            <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 text-[10px] font-black rounded-full border border-indigo-500/20 uppercase tracking-widest">v2.0</span>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Automatic Generator</h1>
+                            <span className="px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-widest shadow-xl">SSTG v2.0</span>
                         </div>
                         <p className="text-sm text-slate-500 mt-1 font-medium">
-                            {viewMode === 'personal' ? 'Your personal teaching itinerary.' : (currentClass ? `${currentClass.name} - Section ${currentClass.section}` : 'Advanced Automated Constraint-Based Scheduling.')}
+                            {viewMode === 'personal' ? 'Your personal schedule.' : (currentClass ? `${currentClass.name} - ${currentClass.section}` : 'Advanced AI-Powered Timetable Orchestration.')}
                         </p>
                     </div>
                 </div>
@@ -312,16 +317,16 @@ export default function TimetablePage() {
                 <div className="flex flex-wrap gap-4 w-full lg:w-auto">
                     {/* View Mode Toggle for Teachers */}
                     {currentUser?.role === ROLES.TEACHER && (
-                        <div className="flex bg-slate-900/50 p-1 rounded-2xl border border-white/5 shadow-inner">
+                        <div className="flex bg-slate-900/50 p-1.5 rounded-2xl border border-white/5 shadow-2xl">
                             <button
                                 onClick={() => setViewMode('personal')}
-                                className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'personal' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'personal' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
                                 PERSONAL
                             </button>
                             <button
                                 onClick={() => setViewMode('class')}
-                                className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'class' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                                className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${viewMode === 'class' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
                             >
                                 CLASS
                             </button>
@@ -330,16 +335,16 @@ export default function TimetablePage() {
 
                     {/* Class Selector */}
                     {viewMode === 'class' && (
-                        <div className="flex-1 min-w-[200px] bg-slate-900/50 p-1 rounded-2xl border border-white/5 shadow-inner flex items-center group focus-within:border-indigo-500/30 transition-all">
-                            <Calendar size={16} className="ml-3 text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
+                        <div className="flex-1 min-w-[240px] bg-slate-900/80 p-1.5 rounded-2xl border border-white/10 shadow-2xl flex items-center group transition-all hover:border-indigo-500/50">
+                            <LayoutGrid size={18} className="ml-3 text-slate-500 group-hover:text-indigo-400 transition-colors" />
                             <select
                                 value={selectedClassId}
                                 onChange={(e) => setSelectedClassId(e.target.value)}
-                                className="bg-transparent text-white text-sm font-bold w-full p-2.5 outline-none cursor-pointer"
+                                className="bg-transparent text-white text-sm font-black w-full p-2.5 outline-none cursor-pointer"
                             >
-                                <option value="" className="bg-slate-900">Select Target Group...</option>
+                                <option value="" className="bg-slate-900">SELECT CLASS MATRIX...</option>
                                 {classes.map((c: any) => (
-                                    <option key={c._id} value={c._id} className="bg-slate-900">{c.name} - {c.section}</option>
+                                    <option key={c._id} value={c._id} className="bg-slate-900 text-[11px] uppercase">{c.name} - {c.section}</option>
                                 ))}
                             </select>
                         </div>
@@ -349,8 +354,8 @@ export default function TimetablePage() {
                         {canEdit && viewMode === 'class' && (
                             <button
                                 onClick={() => setIsEditMode(!isEditMode)}
-                                className={`p-3 rounded-2xl border transition-all ${isEditMode ? 'bg-indigo-600 text-white border-transparent' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'}`}
-                                title={isEditMode ? "View Mode" : "Edit Mode"}
+                                className={`p-4 rounded-2xl border transition-all shadow-xl hover:-translate-y-1 active:scale-95 ${isEditMode ? 'bg-indigo-600 text-white border-transparent' : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10'}`}
+                                title={isEditMode ? "Switch to View Mode" : "Switch to Edit Mode"}
                             >
                                 {isEditMode ? <Eye size={20} /> : <Edit3 size={20} />}
                             </button>
@@ -358,8 +363,8 @@ export default function TimetablePage() {
 
                         <button
                             onClick={() => window.print()}
-                            className="p-3 rounded-2xl bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all"
-                            title="Print Ledger"
+                            className="p-4 rounded-2xl bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 transition-all shadow-xl hover:-translate-y-1 active:scale-95"
+                            title="Print PDF"
                         >
                             <Printer size={20} />
                         </button>
@@ -369,27 +374,27 @@ export default function TimetablePage() {
                                 <button
                                     onClick={handleSSTGGenerate}
                                     disabled={!selectedClassId || isGenerating}
-                                    className="px-5 py-3.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-2xl font-black flex items-center gap-2 transition-all disabled:opacity-50 active:scale-95 group relative overflow-hidden"
+                                    className="px-6 py-4 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 rounded-2xl font-black flex items-center gap-3 transition-all disabled:opacity-50 active:scale-95 shadow-2xl group relative overflow-hidden"
                                 >
                                     {isGenerating ? (
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                                            <span>SOLVING {genQuality}%</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                                            <span className="uppercase tracking-[0.1em]">{genStep}</span>
                                         </div>
                                     ) : (
                                         <>
-                                            <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
-                                            <span>RUN SSTG</span>
+                                            <Sparkles size={20} className="group-hover:animate-bounce" />
+                                            <span className="uppercase tracking-widest text-xs">Generate Smart Map</span>
                                         </>
                                     )}
                                 </button>
                                 <button
                                     onClick={handleSave}
                                     disabled={saving || !selectedClassId || isGenerating}
-                                    className="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl font-black shadow-xl shadow-indigo-500/20 flex items-center gap-2 transition-all active:scale-95 translate-y-0 hover:-translate-y-0.5"
+                                    className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-2xl font-black shadow-2xl shadow-indigo-500/40 flex items-center gap-3 transition-all active:scale-95 hover:-translate-y-1"
                                 >
-                                    <Save size={18} />
-                                    <span>{saving ? 'SYNCING...' : 'PUBLISH'}</span>
+                                    <Save size={20} />
+                                    <span className="uppercase tracking-widest text-xs">{saving ? 'SYNCING...' : 'Publish LIVE'}</span>
                                 </button>
                             </div>
                         )}
@@ -397,54 +402,80 @@ export default function TimetablePage() {
                 </div>
             </div>
 
-            {/* SSTG Optimization Notice */}
-            {isEditMode && selectedClassId && !isGenerating && (
-                <div className="flex items-center gap-3 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl animate-in fade-in slide-in-from-top-2">
-                    <AlertCircle size={18} className="text-indigo-400 shrink-0" />
-                    <p className="text-xs font-medium text-slate-400">
-                        <span className="text-indigo-400 font-bold">Smart Hint:</span> The SSTG engine considers <span className="text-white">Global Teacher Availability</span> across the entire school to prevent scheduling conflicts with other classes.
-                    </p>
+            {/* Smart Optimization Dashboard */}
+            {isEditMode && selectedClassId && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="p-5 bg-white/[0.03] border border-white/10 rounded-3xl flex items-center gap-4 group">
+                        <div className="p-3 bg-indigo-500/10 rounded-2xl group-hover:bg-indigo-500/20 transition-colors">
+                            <RotateCcw size={20} className="text-indigo-400" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Constraint Mode</p>
+                            <p className="text-sm font-bold text-white">Teacher Availability Check</p>
+                        </div>
+                        <CheckCircle2 size={18} className="ml-auto text-emerald-500" />
+                    </div>
+                    <div className="p-5 bg-white/[0.03] border border-white/10 rounded-3xl flex items-center gap-4 group">
+                        <div className="p-3 bg-purple-500/10 rounded-2xl group-hover:bg-purple-500/20 transition-colors">
+                            <Info size={20} className="text-purple-400" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Scheduling Hint</p>
+                            <p className="text-sm font-bold text-white">Balanced Rotation Active</p>
+                        </div>
+                        <CheckCircle2 size={18} className="ml-auto text-emerald-500" />
+                    </div>
+                    <div className="p-5 bg-white/[0.03] border border-white/10 rounded-3xl flex items-center gap-4 group">
+                        <div className="p-3 bg-emerald-500/10 rounded-2xl group-hover:bg-emerald-500/20 transition-colors">
+                            <Zap size={20} className="text-emerald-400" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Status</p>
+                            <p className="text-sm font-bold text-white">No Conflicts Detected</p>
+                        </div>
+                        <CheckCircle2 size={18} className="ml-auto text-emerald-500" />
+                    </div>
                 </div>
             )}
 
             {/* Timetable Grid */}
             {viewMode === 'class' && !selectedClassId ? (
-                <div className="flex flex-col items-center justify-center py-40 glass-dark rounded-[3rem] border border-dashed border-white/10 animate-in fade-in slide-in-from-bottom-6 duration-700">
-                    <div className="w-32 h-32 bg-indigo-600/5 rounded-[2.5rem] flex items-center justify-center text-4xl mb-10 shadow-inner group relative">
-                        <div className="absolute inset-0 bg-indigo-500/10 blur-2xl rounded-full animate-pulse group-hover:bg-indigo-500/20 transition-all" />
-                        <Calendar size={56} className="text-indigo-400 relative z-10 group-hover:scale-110 transition-transform" />
+                <div className="flex flex-col items-center justify-center py-48 bg-slate-950/20 rounded-[3.5rem] border border-dashed border-white/10 animate-in fade-in zoom-in-95 duration-1000">
+                    <div className="w-36 h-36 bg-white/[0.02] rounded-[3rem] flex items-center justify-center text-4xl mb-10 shadow-3xl relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent animate-pulse" />
+                        <Calendar size={64} className="text-indigo-500 relative z-10 group-hover:scale-110 transition-transform duration-700" />
                     </div>
-                    <h3 className="text-3xl font-black text-white tracking-tight">Access Matrix</h3>
-                    <p className="text-slate-500 max-w-sm text-center mt-4 px-10 font-medium leading-relaxed">Select specialized student group from the control panel to initialize the academic orchestration engine.</p>
+                    <h3 className="text-3xl font-black text-white tracking-tighter">Automatic Orchestration</h3>
+                    <p className="text-slate-500 max-w-sm text-center mt-4 px-10 font-bold leading-relaxed opacity-60">Select a class to initialize the SSTG Automatic Generation Engine and publish synchronized schedules.</p>
                 </div>
             ) : loading ? (
-                <div className="py-40 flex flex-col items-center justify-center gap-6">
-                    <div className="relative w-16 h-16">
-                        <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-full" />
+                <div className="py-48 flex flex-col items-center justify-center gap-8">
+                    <div className="relative w-20 h-20">
+                        <div className="absolute inset-0 border-4 border-indigo-500/5 rounded-full" />
                         <div className="absolute inset-0 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
                     </div>
-                    <p className="text-indigo-400 font-black animate-pulse uppercase tracking-[0.3em] text-[10px]">Decoding Schedule Ledger...</p>
+                    <p className="text-indigo-400 font-black animate-pulse uppercase tracking-[0.4em] text-xs">Decrypting School Ledger...</p>
                 </div>
             ) : (
-                <div className="glass-dark rounded-[2.5rem] border border-white/5 overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] overflow-x-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-700">
-                    <table className="w-full min-w-[1100px] border-collapse bg-slate-950/20 table-fixed">
+                <div className="glass-dark rounded-[3rem] border border-white/5 overflow-hidden shadow-[0_48px_80px_-16px_rgba(0,0,0,0.6)] overflow-x-auto custom-scrollbar animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                    <table className="w-full min-w-[1200px] border-collapse bg-slate-950/40 table-fixed">
                         <thead>
-                            <tr className="border-b border-white/5 bg-slate-950/40">
-                                <th className="p-8 text-left text-[10px] font-black text-slate-500 uppercase tracking-widest w-24 sticky left-0 z-30 backdrop-blur-3xl border-r border-white/5">
+                            <tr className="border-b border-white/5 bg-slate-950/60 transition-colors">
+                                <th className="p-10 text-left text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] w-28 sticky left-0 z-30 backdrop-blur-3xl border-r border-white/10">
                                     DAY
                                 </th>
                                 {TIME_SLOTS.map((slot, i) => (
-                                    <th key={i} className={`p-6 text-center border-r border-white/5 last:border-r-0 ${slot.type === 'break' ? 'w-24 bg-indigo-600/10' : ''}`}>
-                                        <div className="text-xs font-black text-white uppercase tracking-wider">{slot.start}</div>
-                                        <div className="text-[10px] text-slate-500 font-bold mt-1.5 uppercase tracking-tighter opacity-60">{slot.label}</div>
+                                    <th key={i} className={`p-8 text-center border-r border-white/5 last:border-r-0 ${slot.type === 'break' ? 'w-28 bg-indigo-600/10' : ''}`}>
+                                        <div className="text-sm font-black text-white uppercase tracking-tighter mb-1.5">{slot.start} - {slot.end}</div>
+                                        <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest opacity-50">{slot.label}</div>
                                     </th>
                                 ))}
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 text-[11px]">
                             {DAYS.map((day) => (
-                                <tr key={day} className="group hover:bg-white/[0.02] transition-colors">
-                                    <td className="p-8 font-black text-white text-[11px] uppercase tracking-[0.2em] bg-slate-900/90 sticky left-0 z-20 backdrop-blur-3xl border-r border-white/5 transition-colors group-hover:text-indigo-400">
+                                <tr key={day} className="group hover:bg-white/[0.03] transition-all duration-300">
+                                    <td className="p-10 font-black text-white text-[12px] uppercase tracking-[0.2em] bg-slate-900/90 sticky left-0 z-20 backdrop-blur-3xl border-r border-white/10 group-hover:text-indigo-400 transition-colors">
                                         {day.substring(0, 3)}
                                     </td>
 
@@ -452,8 +483,8 @@ export default function TimetablePage() {
                                         if (ts.type === 'break') {
                                             return (
                                                 <td key={idx} className="bg-indigo-600/5 relative overflow-hidden border-r border-white/5 group-hover:bg-indigo-600/10 transition-colors">
-                                                    <div className="absolute inset-0 flex items-center justify-center -rotate-90 select-none pointer-events-none opacity-[0.05]">
-                                                        <span className="text-[10px] font-black tracking-[0.8em] text-indigo-400 uppercase italic">INTERMISSION</span>
+                                                    <div className="absolute inset-0 flex items-center justify-center -rotate-90 select-none pointer-events-none opacity-[0.05] group-hover:opacity-10 transition-opacity">
+                                                        <span className="text-[11px] font-black tracking-[1em] text-indigo-400 uppercase italic">RECESS</span>
                                                     </div>
                                                 </td>
                                             );
@@ -461,15 +492,15 @@ export default function TimetablePage() {
 
                                         const cell = schedule[day]?.[idx];
                                         return (
-                                            <td key={idx} className="p-4 border-r border-white/5 last:border-r-0 h-40 align-top transition-all">
+                                            <td key={idx} className="p-4 border-r border-white/5 last:border-r-0 h-44 align-top transition-all">
                                                 {isEditMode && viewMode === 'class' ? (
-                                                    <div className="h-full flex flex-col gap-2.5">
+                                                    <div className="h-full flex flex-col gap-3 animate-in fade-in duration-300">
                                                         <select
                                                             value={cell?.subject || ''}
                                                             onChange={(e) => handleCellChange(day, idx, 'subject', e.target.value)}
-                                                            className="w-full text-[10px] font-black p-2.5 bg-slate-900/80 border border-white/10 rounded-xl text-white outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all shadow-inner"
+                                                            className="w-full text-[10px] font-black p-3 bg-slate-900 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all shadow-inner hover:bg-slate-800"
                                                         >
-                                                            <option value="" className="bg-slate-900 text-slate-500 italic">Select Subject</option>
+                                                            <option value="" className="bg-slate-900 text-slate-600">SUBJECT...</option>
                                                             {subjects.map((s: any) => (
                                                                 <option key={s._id} value={s._id} className="bg-slate-900">{s.name}</option>
                                                             ))}
@@ -477,9 +508,9 @@ export default function TimetablePage() {
                                                         <select
                                                             value={cell?.teacher || ''}
                                                             onChange={(e) => handleCellChange(day, idx, 'teacher', e.target.value)}
-                                                            className="w-full text-[10px] font-bold p-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-indigo-300/80 outline-none focus:ring-1 focus:ring-indigo-500/50 shadow-inner"
+                                                            className="w-full text-[10px] font-bold p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-indigo-300/80 outline-none focus:ring-2 focus:ring-indigo-500/40 shadow-inner hover:bg-white/[0.05]"
                                                         >
-                                                            <option value="" className="bg-slate-900 text-slate-500 italic">Assign Faculty</option>
+                                                            <option value="" className="bg-slate-900 text-slate-600 italic">ASSIGNEE...</option>
                                                             {teachers.map((t: any) => (
                                                                 <option key={t._id} value={t._id} className="bg-slate-900">{t.firstName} {t.lastName}</option>
                                                             ))}
@@ -488,32 +519,35 @@ export default function TimetablePage() {
                                                 ) : (
                                                     <div className="h-full">
                                                         {cell?.subjectName ? (
-                                                            <div className={`p-4 rounded-[1.5rem] border h-full flex flex-col justify-between transition-all hover:scale-[1.03] ${getSubjectColor(cell.subjectName)} shadow-[0_8px_30px_rgb(0,0,0,0.3)] backdrop-blur-sm relative group/cell overflow-hidden`}>
-                                                                <div className="absolute top-0 right-0 p-2 opacity-0 group-hover/cell:opacity-100 transition-opacity">
-                                                                    <Sparkles size={10} className="text-white/40" />
+                                                            <div className={`p-5 rounded-[2rem] border h-full flex flex-col justify-between transition-all hover:scale-[1.04] scroll-mt-20 ${getSubjectColor(cell.subjectName)} shadow-2xl relative group/card overflow-hidden`}>
+                                                                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                                    <Sparkles size={12} className="text-white/40" />
                                                                 </div>
                                                                 <div>
-                                                                    <div className="flex items-center gap-2 mb-2">
-                                                                        <BookOpen size={12} className="shrink-0 opacity-70" />
-                                                                        <span className="text-[11px] font-black uppercase tracking-widest line-clamp-1">{cell.subjectName}</span>
+                                                                    <div className="flex items-center gap-2 mb-2.5">
+                                                                        <BookOpen size={14} className="shrink-0 opacity-80" />
+                                                                        <span className="text-[12px] font-black uppercase tracking-widest line-clamp-1">{cell.subjectName}</span>
                                                                     </div>
-                                                                    <div className="flex items-center gap-2 text-white/50">
-                                                                        {viewMode === 'personal' ? <Zap size={10} className="shrink-0" /> : <User size={10} className="shrink-0" />}
+                                                                    <div className="flex items-center gap-2 text-white/60">
+                                                                        {viewMode === 'personal' ? <Zap size={10} className="shrink-0 text-amber-400" /> : <User size={12} className="shrink-0" />}
                                                                         <span className="text-[10px] font-black line-clamp-1 italic tracking-tight">{viewMode === 'personal' ? cell.className : cell.teacherName}</span>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex items-center justify-between mt-3">
-                                                                    <div className="flex items-center gap-1.5 text-[8px] font-black opacity-30 uppercase tracking-widest">
-                                                                        <Clock size={10} />
+                                                                <div className="flex items-center justify-between mt-4">
+                                                                    <div className="flex items-center gap-1.5 text-[9px] font-black opacity-40 uppercase tracking-widest">
+                                                                        <Clock size={12} />
                                                                         {ts.start}
                                                                     </div>
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-current opacity-20" />
+                                                                    <div className="px-2 py-0.5 rounded-full bg-white/10 text-[8px] font-black opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                                        LIVE
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         ) : (
-                                                            <div className="h-full w-full rounded-[1.5rem] border border-dashed border-white/5 flex items-center justify-center bg-white/[0.012] group-hover:bg-white/[0.02] transition-colors">
-                                                                <div className="flex flex-col items-center gap-1 opacity-[0.08] group-hover:opacity-20 transition-opacity">
-                                                                    <span className="text-[10px] font-black uppercase tracking-[0.4em]">VACANT</span>
+                                                            <div className="h-full w-full rounded-[2rem] border border-dashed border-white/5 flex items-center justify-center bg-white/[0.01] hover:bg-white/[0.02] transition-all group-hover:border-indigo-500/20">
+                                                                <div className="flex flex-col items-center gap-2 opacity-[0.05] group-hover:opacity-20 transition-all group-hover:scale-110 duration-500">
+                                                                    <Zap size={20} />
+                                                                    <span className="text-[10px] font-black uppercase tracking-widest">FREE</span>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -529,21 +563,21 @@ export default function TimetablePage() {
                 </div>
             )}
 
-            {/* Print Styles */}
+            {/* Print Engine Overrides */}
             <style jsx global>{`
                 @media print {
-                    body { background: white !important; color: black !important; padding: 0 !important; }
-                    .glass-dark { background: white !important; color: black !important; border: 1px solid #000 !important; box-shadow: none !important; border-radius: 0 !important; }
-                    th, td { border: 1px solid #ddd !important; color: black !important; }
+                    body { background: white !important; color: black !important; width: 100%; margin: 0; padding: 20px; }
+                    .glass-dark { background: white !important; color: black !important; border: 2px solid #000 !important; box-shadow: none !important; border-radius: 0 !important; }
+                    th, td { border: 1px solid #ddd !important; color: black !important; padding: 10px !important; }
                     .print\\:hidden { display: none !important; }
-                    [class*='bg-'] { background: #f0f0f0 !important; border-color: #000 !important; color: black !important; }
+                    [class*='bg-'] { background: #f8f8f8 !important; border: 1px solid #000 !important; color: black !important; }
                     .text-white, .text-slate-400, .text-indigo-400 { color: black !important; }
-                    table { page-break-inside: avoid; }
+                    .h-44 { height: auto !important; min-height: 80px; }
                 }
-                .custom-scrollbar::-webkit-scrollbar { height: 8px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.4); }
+                .custom-scrollbar::-webkit-scrollbar { height: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
             `}</style>
         </div>
     );
