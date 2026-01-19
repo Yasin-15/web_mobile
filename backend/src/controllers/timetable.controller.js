@@ -344,3 +344,17 @@ exports.bulkUpdateClassTimetable = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
+// @desc    Get all timetable slots for current tenant
+// @route   GET /api/timetable
+exports.getAllTimetable = async (req, res) => {
+    try {
+        const slots = await Timetable.find({ tenantId: req.user.tenantId })
+            .populate('subject', 'name')
+            .populate('teacher', 'firstName lastName')
+            .populate('class', 'name section');
+        res.status(200).json({ success: true, data: slots });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

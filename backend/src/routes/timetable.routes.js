@@ -20,6 +20,7 @@ router.post('/validate', authorize('school-admin'), validateTimetableSlot);
 router.post('/bulk', authorize('school-admin'), bulkUpdateClassTimetable);
 
 router.route('/')
+    .get(authorize('school-admin'), require('../controllers/timetable.controller').getAllTimetable)
     .post(authorize('school-admin'), addTimetableSlot);
 
 router.get('/teacher/me', authorize('teacher'), getTeacherTimetable);
