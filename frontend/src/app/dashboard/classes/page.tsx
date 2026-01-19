@@ -74,11 +74,32 @@ export default function ClassesPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Prepare final subjects array including any pending selections
+        let finalSubjects = [...formData.subjects];
+        if (currentSubjectIds.length > 0 && currentSubjectTeachers.length > 0) {
+            currentSubjectIds.forEach(subId => {
+                const existingIndex = finalSubjects.findIndex(s => s.subject === subId);
+                if (existingIndex > -1) {
+                    const combinedTeachers = Array.from(new Set([...finalSubjects[existingIndex].teachers, ...currentSubjectTeachers]));
+                    finalSubjects[existingIndex] = { ...finalSubjects[existingIndex], teachers: combinedTeachers };
+                } else {
+                    finalSubjects.push({ subject: subId, teachers: [...currentSubjectTeachers] });
+                }
+            });
+        }
+
+        const dataToSave = {
+            ...formData,
+            subjects: finalSubjects,
+            classTeacher: formData.classTeacher || null // Handle empty string
+        };
+
         try {
             if (editId) {
-                await api.put(`/classes/${editId}`, formData);
+                await api.put(`/classes/${editId}`, dataToSave);
             } else {
-                await api.post('/classes', formData);
+                await api.post('/classes', dataToSave);
             }
             setIsModalOpen(false);
             resetForm();
@@ -153,21 +174,28 @@ export default function ClassesPage() {
             return;
         }
 
-        const newAllocations = currentSubjectIds
-            .filter(subId => !formData.subjects.some(s => s.subject === subId))
-            .map(subId => ({
-                subject: subId,
-                teachers: [...currentSubjectTeachers]
-            }));
+        const newSubjects = [...formData.subjects];
 
-        if (newAllocations.length === 0) {
-            alert("Selected subjects are already added to this class.");
-            return;
-        }
+        currentSubjectIds.forEach(subId => {
+            const existingIndex = newSubjects.findIndex(s => s.subject === subId);
+            if (existingIndex > -1) {
+                // Merge teachers, ensuring no duplicates
+                const combinedTeachers = Array.from(new Set([...newSubjects[existingIndex].teachers, ...currentSubjectTeachers]));
+                newSubjects[existingIndex] = {
+                    ...newSubjects[existingIndex],
+                    teachers: combinedTeachers
+                };
+            } else {
+                newSubjects.push({
+                    subject: subId,
+                    teachers: [...currentSubjectTeachers]
+                });
+            }
+        });
 
         setFormData({
             ...formData,
-            subjects: [...formData.subjects, ...newAllocations]
+            subjects: newSubjects
         });
 
         // Clear temporary selections

@@ -6,7 +6,7 @@ const { logAction } = require('../utils/logger');
 // @route   POST /api/classes
 exports.createClass = async (req, res) => {
     try {
-        const { name, section, room, classTeacher, gradeLevel, grade } = req.body;
+        const { name, section, room, classTeacher, gradeLevel, grade, subjects } = req.body;
         const tenantId = req.user.tenantId;
 
         // Check if class already exists in this tenant
@@ -21,9 +21,9 @@ exports.createClass = async (req, res) => {
             gradeLevel,
             grade,
             room,
-            classTeacher,
+            classTeacher: classTeacher || null,
             tenantId,
-            subjects: req.body.subjects || []
+            subjects: subjects || []
         });
 
         await logAction({
@@ -126,13 +126,20 @@ exports.getClass = async (req, res) => {
 // @route   PUT /api/classes/:id
 exports.updateClass = async (req, res) => {
     try {
-        let academicClass = await Class.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
+        const academicClass = await Class.findOne({ _id: req.params.id, tenantId: req.user.tenantId });
         if (!academicClass) return res.status(404).json({ message: 'Class not found' });
 
-        academicClass = await Class.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-            runValidators: true
-        });
+        const { name, section, room, classTeacher, gradeLevel, grade, subjects } = req.body;
+
+        if (name !== undefined) academicClass.name = name;
+        if (section !== undefined) academicClass.section = section;
+        if (room !== undefined) academicClass.room = room;
+        if (classTeacher !== undefined) academicClass.classTeacher = classTeacher || null;
+        if (gradeLevel !== undefined) academicClass.gradeLevel = gradeLevel;
+        if (grade !== undefined) academicClass.grade = grade;
+        if (subjects !== undefined) academicClass.subjects = subjects;
+
+        await academicClass.save();
 
         await logAction({
             action: 'UPDATE',
