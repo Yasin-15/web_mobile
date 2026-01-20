@@ -169,35 +169,7 @@ web_mobile/
 │   │   └── utils/             # Frontend utilities
 │   └── package.json
 │
-└── mobile/                     # Flutter Mobile Application
-    ├── lib/
-    │   ├── main.dart          # App entry point
-    │   ├── providers/         # State management (5 providers)
-    │   │   ├── auth_provider.dart
-    │   │   ├── teacher_provider.dart
-    │   │   ├── student_provider.dart
-    │   │   ├── parent_provider.dart
-    │   │   └── theme_provider.dart
-    │   ├── screens/           # UI screens (11 modules)
-    │   │   ├── assignments/   # Assignment screens
-    │   │   ├── attendance/    # Attendance tracking
-    │   │   ├── certificates/  # Certificate viewing
-    │   │   ├── classes/       # Class management
-    │   │   ├── exams/         # Exam and grades
-    │   │   ├── lms/           # Learning management
-    │   │   ├── materials/     # Learning materials
-    │   │   ├── parent/        # Parent portal
-    │   │   ├── settings/      # App settings
-    │   │   ├── student/       # Student dashboard
-    │   │   └── students/      # Student management
-    │   ├── services/          # API and business logic
-    │   │   ├── api_service.dart
-    │   │   ├── socket_service.dart
-    │   │   └── storage_service.dart
-    │   ├── utils/             # Helper functions
-    │   └── widgets/           # Reusable widgets
-    └── pubspec.yaml
-```
+
 
 ---
 
