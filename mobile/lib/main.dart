@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'utils/router.dart';
-import 'utils/theme.dart';
-import 'providers/app_state.dart';
+import 'providers/auth_provider.dart';
+import 'providers/teacher_provider.dart';
+import 'providers/student_provider.dart';
+import 'providers/parent_provider.dart';
+import 'providers/theme_provider.dart';
+import 'services/offline_service.dart';
+import 'services/connectivity_service.dart';
+import 'screens/splash_screen.dart';
+import 'utils/app_themes.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await OfflineService.init();
+
+  // Initialize theme provider
+  final themeProvider = ThemeProvider();
+  await themeProvider.init();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ConnectivityService()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => TeacherProvider()),
+        ChangeNotifierProvider(create: (_) => StudentProvider()),
+        ChangeNotifierProvider(create: (_) => ParentProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -13,30 +38,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AppState()),
-        // Add other providers here
-      ],
-      child: const AppContent(),
-    );
-  }
-}
-
-class AppContent extends StatelessWidget {
-  const AppContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
-
-    return MaterialApp.router(
-      title: 'Premium Flutter App',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'School Registry Mobile',
+          debugShowCheckedModeBanner: false,
+          theme: AppThemes.lightTheme,
+          darkTheme: AppThemes.darkTheme,
+          themeMode: themeProvider.flutterThemeMode,
+          home: const SplashScreen(),
+        );
+      },
     );
   }
 }
