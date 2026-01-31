@@ -28,6 +28,8 @@ export default function CertificatesPage() {
         title: '',
         description: '',
         metadata: {
+            grade: '',
+            academicYear: '2025-26',
             rank: '',
             score: '',
             examType: '',
@@ -519,7 +521,7 @@ export default function CertificatesPage() {
                                         <div className="flex items-center gap-4">
                                             {form.metadata.schoolLogo && (
                                                 <div className="w-12 h-12 bg-white rounded-lg p-1 flex items-center justify-center">
-                                                     <img src={form.metadata.schoolLogo} alt="Logo" className="w-full h-full object-contain" />
+                                                    <img src={form.metadata.schoolLogo} alt="Logo" className="w-full h-full object-contain" />
                                                 </div>
                                             )}
                                             <input
@@ -528,11 +530,11 @@ export default function CertificatesPage() {
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
                                                     if (file) {
-                                                         const reader = new FileReader();
-                                                         reader.onloadend = () => {
-                                                             setForm({ ...form, metadata: { ...form.metadata, schoolLogo: reader.result as string } })
-                                                         };
-                                                         reader.readAsDataURL(file);
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setForm({ ...form, metadata: { ...form.metadata, schoolLogo: reader.result as string } })
+                                                        };
+                                                        reader.readAsDataURL(file);
                                                     }
                                                 }}
                                                 className="w-full px-5 py-3 bg-slate-950 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500"
@@ -762,9 +764,9 @@ export default function CertificatesPage() {
 
                                     <div className="border-[1px] md:border-[2px] border-[#D4AF37] h-full w-full p-2 md:p-10 box-border flex flex-col items-center text-center">
                                         {previewCert.metadata?.schoolLogo && (
-                                            <img 
-                                                src={previewCert.metadata.schoolLogo} 
-                                                alt="School Logo" 
+                                            <img
+                                                src={previewCert.metadata.schoolLogo}
+                                                alt="School Logo"
                                                 className="w-16 h-16 md:w-24 md:h-24 object-contain mb-2 md:mb-4"
                                             />
                                         )}
