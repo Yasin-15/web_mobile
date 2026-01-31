@@ -28,11 +28,11 @@ export default function CertificatesPage() {
         title: '',
         description: '',
         metadata: {
-            grade: '',
-            academicYear: '2025-26',
             rank: '',
             score: '',
-            examType: ''
+            examType: '',
+            schoolName: '',
+            schoolLogo: ''
         }
     };
     const [form, setForm] = useState(initialForm);
@@ -157,7 +157,9 @@ export default function CertificatesPage() {
                 academicYear: cert.metadata?.academicYear || '2025-26',
                 rank: cert.metadata?.rank || '',
                 score: cert.metadata?.score || '',
-                examType: cert.metadata?.examType || ''
+                examType: cert.metadata?.examType || '',
+                schoolName: cert.metadata?.schoolName || '',
+                schoolLogo: cert.metadata?.schoolLogo || ''
             }
         });
         setView('issue');
@@ -318,6 +320,8 @@ export default function CertificatesPage() {
                     <div class="corner corner-br"></div>
                     
                     <div class="inner-border">
+                        ${cert.metadata?.schoolLogo ? `<img src="${cert.metadata.schoolLogo}" style="width: 80px; height: 80px; margin-bottom: 10px; object-fit: contain; display: block;" />` : ''}
+                        ${cert.metadata?.schoolName ? `<div style="font-family: 'Cinzel', serif; font-size: 28px; color: #0c2340; font-weight: bold; margin-bottom: 20px; text-transform: uppercase;">${cert.metadata.schoolName}</div>` : ''}
                         <div class="header-title">Certificate of</div>
                         <div class="sub-header">${cert.certificateType.toUpperCase()}</div>
                         
@@ -498,6 +502,45 @@ export default function CertificatesPage() {
                             <p className="text-slate-500 text-sm mt-1">{editingCert ? 'Modify the details of this issued credential.' : 'Create a new digital credential for a student.'}</p>
                         </div>
                         <form onSubmit={handleIssue} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="md:col-span-2 space-y-4 border-b border-white/5 pb-8">
+                                <h3 className="text-lg font-bold text-white mb-4">School Administration</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">School Name</label>
+                                        <input
+                                            value={form.metadata.schoolName}
+                                            onChange={e => setForm({ ...form, metadata: { ...form.metadata, schoolName: e.target.value } })}
+                                            placeholder="e.g. Springfield High School"
+                                            className="w-full px-5 py-4 bg-slate-950 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">School Logo</label>
+                                        <div className="flex items-center gap-4">
+                                            {form.metadata.schoolLogo && (
+                                                <div className="w-12 h-12 bg-white rounded-lg p-1 flex items-center justify-center">
+                                                     <img src={form.metadata.schoolLogo} alt="Logo" className="w-full h-full object-contain" />
+                                                </div>
+                                            )}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                         const reader = new FileReader();
+                                                         reader.onloadend = () => {
+                                                             setForm({ ...form, metadata: { ...form.metadata, schoolLogo: reader.result as string } })
+                                                         };
+                                                         reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                                className="w-full px-5 py-3 bg-slate-950 border border-white/10 rounded-2xl text-white outline-none focus:ring-2 focus:ring-indigo-500/30 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Student</label>
@@ -718,7 +761,19 @@ export default function CertificatesPage() {
                                     <div className="absolute bottom-[-5px] right-[-5px] w-8 h-8 md:w-12 md:h-12 border-b-[3px] md:border-b-[5px] border-r-[3px] md:border-r-[5px] border-[#D4AF37]"></div>
 
                                     <div className="border-[1px] md:border-[2px] border-[#D4AF37] h-full w-full p-2 md:p-10 box-border flex flex-col items-center text-center">
-                                        <h1 className="font-serif text-xl md:text-5xl lg:text-6xl text-[#0c2340] mt-2 md:mt-8 tracking-[1px] md:tracking-[4px] uppercase font-bold">Certificate of</h1>
+                                        {previewCert.metadata?.schoolLogo && (
+                                            <img 
+                                                src={previewCert.metadata.schoolLogo} 
+                                                alt="School Logo" 
+                                                className="w-16 h-16 md:w-24 md:h-24 object-contain mb-2 md:mb-4"
+                                            />
+                                        )}
+                                        {previewCert.metadata?.schoolName && (
+                                            <div className="font-serif text-lg md:text-3xl text-[#0c2340] font-bold uppercase tracking-widest mb-2 md:mb-4">
+                                                {previewCert.metadata.schoolName}
+                                            </div>
+                                        )}
+                                        <h1 className="font-serif text-xl md:text-5xl lg:text-6xl text-[#0c2340] mt-2 md:mt-4 tracking-[1px] md:tracking-[4px] uppercase font-bold">Certificate of</h1>
                                         <h2 className="font-serif text-xs md:text-2xl text-[#D4AF37] mt-1 md:mt-2 tracking-[3px] md:tracking-[10px] uppercase">{previewCert.certificateType}</h2>
 
                                         <div className="w-24 md:w-96 h-[1px] md:h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent my-2 md:my-10"></div>
