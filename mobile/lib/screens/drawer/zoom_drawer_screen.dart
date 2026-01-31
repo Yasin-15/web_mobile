@@ -17,26 +17,29 @@ class ZoomDrawerScreen extends StatefulWidget {
 class _ZoomDrawerScreenState extends State<ZoomDrawerScreen> {
   final _drawerController = ZoomDrawerController();
   late Widget _currentScreen;
+  String _currentTitle = 'Dashboard';
 
   @override
   void initState() {
     super.initState();
-    // Initialize with the correct dashboard based on role
-    _currentScreen = _getInitialScreen();
+    _initializeScreen();
   }
 
-  Widget _getInitialScreen() {
+  void _initializeScreen() {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final role = auth.user?['role'];
 
+    // Set initial screen based on role
     if (role == 'student') {
-      return const StudentDashboardScreen();
+      _currentScreen = const StudentDashboardScreen();
     } else if (role == 'teacher') {
-      return const DashboardScreen();
+      _currentScreen = const DashboardScreen();
     } else if (role == 'parent') {
-      return ParentDashboardScreen();
+      _currentScreen = ParentDashboardScreen();
+    } else {
+      _currentScreen = const DashboardScreen();
     }
-    return const DashboardScreen();
+    _currentTitle = 'Dashboard';
   }
 
   @override
@@ -44,9 +47,11 @@ class _ZoomDrawerScreenState extends State<ZoomDrawerScreen> {
     return ZoomDrawer(
       controller: _drawerController,
       menuScreen: MenuScreen(
-        onMenuItemSelected: (screen) {
+        currentMenuTitle: _currentTitle,
+        onMenuItemSelected: (item) {
           setState(() {
-            _currentScreen = screen;
+            _currentScreen = item.screen;
+            _currentTitle = item.title;
           });
           _drawerController.close?.call();
         },
@@ -54,11 +59,18 @@ class _ZoomDrawerScreenState extends State<ZoomDrawerScreen> {
       mainScreen: _currentScreen,
       borderRadius: 24.0,
       showShadow: true,
-      angle: 0.1,
-      drawerShadowsBackgroundColor: Colors.grey.withOpacity(0.3),
-      slideWidth: MediaQuery.of(context).size.width * 0.75,
+      angle: 0.0, // Reduced angle for cleaner look
+      drawerShadowsBackgroundColor: Colors.black.withOpacity(0.3),
+      slideWidth:
+          MediaQuery.of(context).size.width *
+          0.70, // Slightly improved slide width
       menuBackgroundColor: const Color(0xFF1E1E2D),
-      mainScreenScale: 0.4,
+      mainScreenScale: 0.2, // Slightly larger scale for main screen when open
+      // performance optimization
+      duration: const Duration(milliseconds: 250), // Fast animation
+      reverseDuration: const Duration(milliseconds: 250),
+      openCurve: Curves.fastOutSlowIn,
+      closeCurve: Curves.fastOutSlowIn,
     );
   }
 }

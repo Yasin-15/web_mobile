@@ -224,7 +224,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   void _fetchExistingAttendance(String classId) async {
     final teacher = Provider.of<TeacherProvider>(context, listen: false);
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    final today = DateTime.now().toUtc().toIso8601String().split('T')[0];
     final records = await teacher.fetchClassAttendance(classId, today);
 
     if (records.isNotEmpty) {

@@ -247,7 +247,7 @@ class TeacherProvider with ChangeNotifier {
       final response = await _apiService.post('/attendance/mark', {
         'classId': classId,
         'records': attendanceData,
-        'date': DateTime.now().toIso8601String(),
+        'date': DateTime.now().toUtc().toIso8601String().split('T')[0],
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
