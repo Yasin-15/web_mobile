@@ -229,7 +229,7 @@ export default function ContactPage() {
                                 </svg>
                             </div>
                             <h3 className="text-white font-semibold mb-1">Email</h3>
-                            <p className="text-slate-400 text-sm">support@schoolos.com</p>
+                            <p className="text-slate-400 text-sm">groupg@schoolos.com</p>
                         </div>
 
                         <div className="glass-dark p-6 rounded-2xl border border-white/5">
@@ -239,7 +239,7 @@ export default function ContactPage() {
                                 </svg>
                             </div>
                             <h3 className="text-white font-semibold mb-1">Phone</h3>
-                            <p className="text-slate-400 text-sm">+1 (555) 123-4567</p>
+                            <p className="text-slate-400 text-sm">+252 610 88 88 88</p>
                         </div>
 
                         <div className="glass-dark p-6 rounded-2xl border border-white/5">
