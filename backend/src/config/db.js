@@ -16,9 +16,9 @@ const connectDB = async () => {
             socketTimeoutMS: 45000,
         });
 
-        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        console.log(` MongoDB Connected: ${conn.connection.host}`);
     } catch (error) {
-        console.error(`❌ MongoDB Connection Error: ${error.message}`);
+        console.error(` MongoDB Connection Error: ${error.message}`);
         if (error.reason) console.error('Reason:', error.reason);
 
         if (error.message.includes('authentication failed')) {

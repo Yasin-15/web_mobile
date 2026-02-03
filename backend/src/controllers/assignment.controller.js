@@ -15,7 +15,7 @@ exports.createAssignment = async (req, res) => {
             description,
             class: classId,
             subject: subjectId,
-            teacher: req.user._id, // Assumes user is teacher
+            teacher: req.user._id, 
             dueDate: new Date(dueDate)
         });
 

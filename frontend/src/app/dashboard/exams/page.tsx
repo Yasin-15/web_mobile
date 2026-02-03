@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import api from '../../utils/api';
+import { validateMarkEntry } from '../../../utils/validation';
 
 ChartJS.register(
     CategoryScale,
@@ -256,6 +257,16 @@ export default function ExamsPage() {
                 alert('Please enter at least one mark before saving');
                 setSaving(false);
                 return;
+            }
+
+            // Validate Marks
+            for (const m of marks) {
+                const validation = validateMarkEntry(m.score, Number(maxMarks));
+                if (!validation.isValid) {
+                    alert(`Error for student ${m.studentId}: ${validation.message}`);
+                    setSaving(false);
+                    return;
+                }
             }
 
             await api.post('/exams/marks/bulk', {

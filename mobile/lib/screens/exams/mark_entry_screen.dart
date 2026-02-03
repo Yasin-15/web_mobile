@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/teacher_provider.dart';
+import '../../../utils/validation.dart';
 
 class MarkEntryScreen extends StatefulWidget {
   final dynamic exam;
@@ -63,15 +64,39 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
 
   void _saveMarks() async {
     final List<Map<String, dynamic>> finalMarks = [];
-    marksData.forEach((studentId, data) {
-      if (data['score'].toString().isNotEmpty) {
+
+    // Validate marks before saving
+    for (var entry in marksData.entries) {
+      if (entry.value['score'].toString().isNotEmpty) {
+        // Assume default max marks 100 if not available, or fetch it properly
+        // In real app, pass maxMarks into the screen.
+        // For now we will use a safe default or valid logic.
+        // But the user requested validation.
+
+        // We need to valid against something. If exam has maxMarks, use it.
+        final maxMarks = widget.exam['maxMarks'] ?? 100;
+
+        final validation = ValidationUtils.validateMarkEntry(
+          entry.value['score'],
+          maxMarks,
+        );
+
+        if (!validation['isValid']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Student ${entry.key}: ${validation['message']}'),
+            ),
+          );
+          return;
+        }
+
         finalMarks.add({
-          'studentId': studentId,
-          'score': double.tryParse(data['score'].toString()) ?? 0,
-          'remarks': data['remarks'] ?? '',
+          'studentId': entry.key,
+          'score': double.tryParse(entry.value['score'].toString()) ?? 0,
+          'remarks': entry.value['remarks'] ?? '',
         });
       }
-    });
+    }
 
     if (finalMarks.isEmpty) {
       ScaffoldMessenger.of(

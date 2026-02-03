@@ -41,6 +41,7 @@ exports.createClass = async (req, res) => {
     }
 };
 
+
 // @desc    Get all classes for current tenant
 // @route   GET /api/classes
 exports.getClasses = async (req, res) => {

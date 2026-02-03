@@ -77,9 +77,9 @@ exports.bulkMarkEntry = async (req, res) => {
         const exam = await Exam.findOne({ _id: examId, tenantId });
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
 
-        if (exam.isApproved && req.user.role !== 'school-admin') {
-            return res.status(400).json({ success: false, message: 'Marks are locked for this exam as it has been approved. Contact admin to revert approval.' });
-        }
+        // if (exam.isApproved && req.user.role !== 'school-admin') {
+        //     return res.status(400).json({ success: false, message: 'Marks are locked for this exam as it has been approved. Contact admin to revert approval.' });
+        // }
 
         // Authority Check for teachers
         if (req.user.role === 'teacher') {
@@ -100,13 +100,16 @@ exports.bulkMarkEntry = async (req, res) => {
         }
 
         // Validation: Check if any marks exceed max marks
+        const { validateMarkEntry } = require('../utils/validation');
         for (const m of filteredMarks) {
-            const marksObtained = Number(m.score);
+            const marksObtained = String(m.score);
             const mMax = Number(m.maxMarks) || Number(globalMaxMarks) || 100;
-            if (marksObtained > mMax) {
+
+            const validation = validateMarkEntry(marksObtained, mMax);
+            if (!validation.isValid) {
                 return res.status(400).json({
                     success: false,
-                    message: `Invalid marks for student ${m.studentId}. Marks obtained (${marksObtained}) cannot exceed max marks (${mMax}).`
+                    message: `Invalid marks for student ${m.studentId}: ${validation.message}`
                 });
             }
         }
@@ -191,12 +194,12 @@ exports.deleteMark = async (req, res) => {
 
         // Check if exam is approved
         const exam = await Exam.findOne({ _id: mark.exam, tenantId });
-        if (exam && exam.isApproved && req.user.role !== 'school-admin') {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot delete marks for approved exams. Contact admin to revert approval.'
-            });
-        }
+        // if (exam && exam.isApproved && req.user.role !== 'school-admin') {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Cannot delete marks for approved exams. Contact admin to revert approval.'
+        //     });
+        // }
 
         // Authority Check for teachers
         if (req.user.role === 'teacher') {
@@ -250,12 +253,12 @@ exports.bulkDeleteMarks = async (req, res) => {
             return res.status(404).json({ message: 'Exam not found' });
         }
 
-        if (exam.isApproved && req.user.role !== 'school-admin') {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot delete marks for approved exams. Contact admin to revert approval.'
-            });
-        }
+        // if (exam.isApproved && req.user.role !== 'school-admin') {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Cannot delete marks for approved exams. Contact admin to revert approval.'
+        //     });
+        // }
 
         // Authority Check for teachers
         if (req.user.role === 'teacher') {

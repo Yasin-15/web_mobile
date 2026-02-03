@@ -146,6 +146,14 @@ export default function AddStudentPage() {
                                 <option value="other">Other</option>
                             </select>
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
+                            <input
+                                name="phone" value={formData.phone} onChange={handleChange}
+                                placeholder="+1 234 567 8900"
+                                className="w-full px-5 py-3.5 bg-slate-950 border border-white/10 rounded-2xl text-white focus:ring-2 focus:ring-indigo-500/50 focus:outline-none transition shadow-inner"
+                            />
+                        </div>
                     </div>
                 </section>
 
