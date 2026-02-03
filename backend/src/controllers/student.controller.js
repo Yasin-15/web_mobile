@@ -152,7 +152,7 @@ exports.getStudents = async (req, res) => {
         // If teacher, find students only in the classes they teach or are in charge of
         if (role === 'teacher') {
             const [slots, assignedClasses, subjectClasses] = await Promise.all([
-                Timetable.find({ teacher: req.user._id, tenantId }).populate('class'),
+                Timetable.find({ teachers: req.user._id, tenantId }).populate('class'),
                 Class.find({ classTeacher: req.user._id, tenantId }),
                 Class.find({ 'subjects.teachers': req.user._id, tenantId })
             ]);

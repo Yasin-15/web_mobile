@@ -92,7 +92,7 @@ exports.bulkMarkEntry = async (req, res) => {
         // Authority Check for teachers
         if (req.user.role === 'teacher') {
             const [isAssigned, isClassTeacher] = await Promise.all([
-                Timetable.findOne({ teacher: req.user._id, class: classId, subject: subjectId, tenantId }),
+                Timetable.findOne({ teachers: req.user._id, class: classId, subject: subjectId, tenantId }),
                 Class.findOne({ _id: classId, classTeacher: req.user._id, tenantId })
             ]);
 
@@ -215,7 +215,7 @@ exports.deleteMark = async (req, res) => {
         // Authority Check for teachers
         if (req.user.role === 'teacher') {
             const [isAssigned, isClassTeacher] = await Promise.all([
-                Timetable.findOne({ teacher: req.user._id, class: mark.class, subject: mark.subject, tenantId }),
+                Timetable.findOne({ teachers: req.user._id, class: mark.class, subject: mark.subject, tenantId }),
                 Class.findOne({ _id: mark.class, classTeacher: req.user._id, tenantId })
             ]);
 
@@ -277,7 +277,7 @@ exports.bulkDeleteMarks = async (req, res) => {
         // Authority Check for teachers
         if (req.user.role === 'teacher') {
             const [isAssigned, isClassTeacher] = await Promise.all([
-                Timetable.findOne({ teacher: req.user._id, class: classId, subject: subjectId, tenantId }),
+                Timetable.findOne({ teachers: req.user._id, class: classId, subject: subjectId, tenantId }),
                 Class.findOne({ _id: classId, classTeacher: req.user._id, tenantId })
             ]);
 
@@ -601,7 +601,7 @@ exports.getComplaints = async (req, res) => {
         if (req.user.role === 'student') query.student = req.user._id;
 
         if (req.user.role === 'teacher') {
-            const slots = await Timetable.find({ teacher: req.user._id, tenantId: req.user.tenantId });
+            const slots = await Timetable.find({ teachers: req.user._id, tenantId: req.user.tenantId });
             const subjectIds = [...new Set(slots.map(s => s.subject.toString()))];
             query.subject = { $in: subjectIds };
         }
