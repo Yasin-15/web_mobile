@@ -44,7 +44,10 @@ export default function AssignmentsPage() {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
         setUser(u);
         fetchAssignments();
-        if (hasPermission(RESOURCES.ASSIGNMENTS, ACTIONS.CREATE)) {
+
+        // Fetch classes and subjects for teachers and admins
+        // Check role directly since hasPermission might return false initially
+        if (u.role === 'teacher' || u.role === 'school-admin' || u.role === 'super-admin') {
             fetchClassesAndSubjects();
         }
     }, []);
@@ -63,14 +66,20 @@ export default function AssignmentsPage() {
 
     const fetchClassesAndSubjects = async () => {
         try {
+            console.log('Fetching classes and subjects...');
             const [cRes, sRes] = await Promise.all([
                 api.get('/classes'),
                 api.get('/subjects')
             ]);
-            setClasses(cRes.data.data);
-            setSubjects(sRes.data.data);
-        } catch (error) {
-            console.error(error);
+            console.log('Classes response:', cRes.data);
+            console.log('Subjects response:', sRes.data);
+            setClasses(cRes.data.data || []);
+            setSubjects(sRes.data.data || []);
+            toast.success(`Loaded ${cRes.data.data?.length || 0} classes and ${sRes.data.data?.length || 0} subjects`);
+        } catch (error: any) {
+            console.error('Error fetching classes/subjects:', error);
+            console.error('Error response:', error.response?.data);
+            toast.error(error.response?.data?.message || 'Failed to load classes and subjects');
         }
     };
 

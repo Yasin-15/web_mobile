@@ -1,5 +1,6 @@
 const Class = require('../models/class.model');
 const Timetable = require('../models/timetable.model');
+const User = require('../models/user.model');
 const { logAction } = require('../utils/logger');
 
 // @desc    Create a new class
