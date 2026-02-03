@@ -81,7 +81,79 @@ exports.getNotifications = async (req, res) => {
         // Filter by class if applicable
         const filtered = notifications.filter(n => !n.targetClass || n.targetClass === userClass);
 
-        res.status(200).json({ success: true, data: filtered });
+        // Add isRead flag for each notification
+        const withReadStatus = filtered.map(n => ({
+            ...n.toObject(),
+            isRead: n.readBy.includes(req.user._id)
+        }));
+
+        res.status(200).json({ success: true, data: withReadStatus });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Mark notification as read
+// @route   PUT /api/notifications/:id/read
+exports.markAsRead = async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.id);
+
+        if (!notification) {
+            return res.status(404).json({ success: false, message: 'Notification not found' });
+        }
+
+        // Check if user has access to this notification
+        const tenantId = req.user.tenantId;
+        const role = req.user.role;
+        const userClass = req.user.profile?.class;
+
+        if (notification.tenantId !== tenantId) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        if (notification.targetRole !== 'all' && notification.targetRole !== role) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        if (notification.targetClass && notification.targetClass !== userClass) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
+        // Add user to readBy array if not already there
+        if (!notification.readBy.includes(req.user._id)) {
+            notification.readBy.push(req.user._id);
+            await notification.save();
+        }
+
+        res.status(200).json({ success: true, data: notification });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// @desc    Get unread notification count
+// @route   GET /api/notifications/unread/count
+exports.getUnreadCount = async (req, res) => {
+    try {
+        const tenantId = req.user.tenantId;
+        const role = req.user.role;
+        const userClass = req.user.profile?.class;
+
+        // Find notifications that target the user's role or 'all'
+        const notifications = await Notification.find({
+            tenantId,
+            $or: [
+                { targetRole: 'all' },
+                { targetRole: role }
+            ],
+            readBy: { $ne: req.user._id } // Not read by current user
+        });
+
+        // Filter by class if applicable
+        const filtered = notifications.filter(n => !n.targetClass || n.targetClass === userClass);
+
+        res.status(200).json({ success: true, count: filtered.length });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

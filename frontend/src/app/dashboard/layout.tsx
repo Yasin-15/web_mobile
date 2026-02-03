@@ -46,6 +46,16 @@ export default function DashboardLayout({
     const [user, setUser] = useState<any>(null);
     const [tenant, setTenant] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    const fetchUnreadCount = async () => {
+        try {
+            const { data } = await api.get('/notifications/unread/count');
+            setUnreadCount(data.count);
+        } catch (err) {
+            console.error("Failed to fetch unread count");
+        }
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -60,6 +70,9 @@ export default function DashboardLayout({
         setUser(userData);
         setIsAuthorized(true);
 
+        // Fetch unread count
+        fetchUnreadCount();
+
         // Fetch Branding
         api.get('/tenants/me').then(res => {
             const tenantData = res.data.data;
@@ -69,6 +82,13 @@ export default function DashboardLayout({
             if (tenantData?._id) {
                 const { initSocket } = require('../utils/socket');
                 const socket = initSocket(tenantData._id);
+
+                // Listen for new notifications
+                if (socket) {
+                    socket.on('notification-received', () => {
+                        fetchUnreadCount();
+                    });
+                }
             }
         }).catch(() => { });
 
@@ -174,7 +194,7 @@ export default function DashboardLayout({
             );
         }
 
-        // common.push({ name: 'Notifications', href: '/dashboard/notifications', icon: <Bell className="w-5 h-5" /> });
+        common.push({ name: 'Notifications', href: '/dashboard/notifications', icon: <Bell className="w-5 h-5" /> });
 
 
         common.push({ name: 'About School', href: '/dashboard/about', icon: <Info className="w-5 h-5" /> });
@@ -286,10 +306,14 @@ export default function DashboardLayout({
                     <div className="flex items-center gap-3">
                         <ThemeToggle />
                         <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1"></div>
-                        <button className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 transition-colors relative">
+                        <Link href="/dashboard/notifications" className="w-10 h-10 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 transition-colors relative">
                             <Bell className="w-5 h-5" />
-                            <span className="absolute top-2.5 right-3 w-2 h-2 bg-indigo-500 rounded-full border-2 border-white dark:border-slate-950"></span>
-                        </button>
+                            {unreadCount > 0 && (
+                                <span className="absolute top-2 right-2.5 min-w-[18px] h-[18px] bg-indigo-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-slate-950">
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </span>
+                            )}
+                        </Link>
                     </div>
                 </header>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 lg:p-8">

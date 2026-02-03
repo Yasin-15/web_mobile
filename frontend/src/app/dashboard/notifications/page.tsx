@@ -7,6 +7,7 @@ export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     // Form State
     const [form, setForm] = useState({
@@ -30,10 +31,33 @@ export default function NotificationsPage() {
         }
     };
 
+    const fetchUnreadCount = async () => {
+        try {
+            const { data } = await api.get('/notifications/unread/count');
+            setUnreadCount(data.count);
+        } catch (err) {
+            console.error("Failed to fetch unread count");
+        }
+    };
+
+    const markAsRead = async (notificationId: string) => {
+        try {
+            await api.put(`/notifications/${notificationId}/read`);
+            // Update local state
+            setNotifications(prev => prev.map(n =>
+                n._id === notificationId ? { ...n, isRead: true } : n
+            ));
+            fetchUnreadCount();
+        } catch (err) {
+            console.error("Failed to mark as read");
+        }
+    };
+
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) setUser(JSON.parse(userStr));
         fetchNotifications();
+        fetchUnreadCount();
 
         // Socket Listener
         const { getSocket } = require('../../utils/socket');
@@ -42,6 +66,7 @@ export default function NotificationsPage() {
         if (socket) {
             socket.on('notification-received', (newNotif: any) => {
                 setNotifications((prev: any) => [newNotif, ...prev]);
+                fetchUnreadCount();
             });
         }
 
@@ -79,7 +104,14 @@ export default function NotificationsPage() {
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-black text-white tracking-tight">Notification Center</h1>
-                    <p className="text-slate-500 mt-1">Manage announcements and multi-channel broadcasts.</p>
+                    <p className="text-slate-500 mt-1">
+                        Manage announcements and multi-channel broadcasts.
+                        {unreadCount > 0 && (
+                            <span className="ml-2 px-2 py-1 bg-indigo-500 text-white text-xs font-bold rounded-full">
+                                {unreadCount} unread
+                            </span>
+                        )}
+                    </p>
                 </div>
                 {isAdmin && (
                     <button
@@ -95,7 +127,14 @@ export default function NotificationsPage() {
                 {loading ? (
                     <div className="text-center py-20 text-slate-600 animate-pulse italic font-bold">Synchronizing feed...</div>
                 ) : notifications.length > 0 ? notifications.map((n: any) => (
-                    <div key={n._id} className="glass-dark p-6 rounded-[2rem] border border-white/5 hover:border-white/10 transition-all group">
+                    <div
+                        key={n._id}
+                        onClick={() => !n.isRead && markAsRead(n._id)}
+                        className={`glass-dark p-6 rounded-[2rem] border transition-all group ${n.isRead
+                                ? 'border-white/5 hover:border-white/10'
+                                : 'border-indigo-500/30 bg-indigo-500/5 hover:border-indigo-500/50 cursor-pointer'
+                            }`}
+                    >
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-4">
                                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${n.type === 'alert' ? 'bg-red-500/10 text-red-400' :

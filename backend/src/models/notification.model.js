@@ -41,7 +41,11 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         enum: ['sent', 'pending', 'failed'],
         default: 'sent'
-    }
+    },
+    readBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, {
     timestamps: true
 });
