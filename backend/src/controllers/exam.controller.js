@@ -446,6 +446,39 @@ exports.approveResults = async (req, res) => {
     }
 };
 
+// @desc    Unapprove Results (Unlock for editing)
+// @route   PUT /api/exams/:id/unapprove
+exports.unapproveResults = async (req, res) => {
+    try {
+        const exam = await Exam.findOneAndUpdate(
+            { _id: req.params.id, tenantId: req.user.tenantId },
+            {
+                isApproved: false,
+                approvedBy: null,
+                approvalDate: null,
+                status: 'active'
+            },
+            { new: true }
+        );
+
+        if (!exam) {
+            return res.status(404).json({ success: false, message: 'Exam not found' });
+        }
+
+        await logAction({
+            action: 'UPDATE',
+            module: 'EXAM',
+            details: `Unapproved exam: ${exam.name} - Marks unlocked for editing`,
+            userId: req.user._id,
+            tenantId: req.user.tenantId
+        });
+
+        res.status(200).json({ success: true, data: exam, message: 'Exam unlocked successfully. Teachers can now edit marks.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // @desc    Export Excel Matrix
 exports.exportExcelMatrix = async (req, res) => {
     try {

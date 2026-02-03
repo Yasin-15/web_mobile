@@ -134,6 +134,18 @@ export default function ExamsPage() {
         }
     };
 
+    const handleUnapprove = async (examId: string) => {
+        if (!confirm("Unlock this exam for editing? Teachers will be able to modify marks again.")) return;
+        try {
+            await api.put(`/exams/${examId}/unapprove`);
+            alert("Exam unlocked! Teachers can now edit marks.");
+            const { data } = await api.get('/exams');
+            setExams(data.data);
+        } catch (err: any) {
+            alert(err.response?.data?.message || "Failed to unlock exam");
+        }
+    };
+
     const fetchAnalytics = async (examId: string) => {
         try {
             setLoading(true);
@@ -407,6 +419,9 @@ export default function ExamsPage() {
                                     <button onClick={() => { setSelectedExam(exam); setView('grades'); }} className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">Mark Entry</button>
                                     {!exam.isApproved && user?.role === 'school-admin' && (
                                         <button onClick={() => handleApprove(exam._id)} className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/20">Finalize</button>
+                                    )}
+                                    {exam.isApproved && user?.role === 'school-admin' && (
+                                        <button onClick={() => handleUnapprove(exam._id)} className="flex-1 py-4 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-600/20 transition-all">🔓 Unlock</button>
                                     )}
                                     <button onClick={() => fetchAnalytics(exam._id)} className="w-full py-4 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-emerald-500/10">Academic Analytics</button>
                                 </div>

@@ -10,6 +10,7 @@ const {
     getMarks,
     getStudentReport,
     approveResults,
+    unapproveResults,
     exportExcelMatrix,
     getGradeSystem,
     updateGradeSystem,
@@ -37,6 +38,7 @@ router.route('/:id')
     .put(authorize('school-admin'), updateExam);
 
 router.put('/:id/approve', authorize('school-admin'), approveResults);
+router.put('/:id/unapprove', authorize('school-admin'), unapproveResults);
 
 // Mark Entry & Reports
 router.post('/marks/bulk', authorize('school-admin', 'teacher'), bulkMarkEntry);
