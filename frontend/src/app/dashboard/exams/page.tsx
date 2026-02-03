@@ -231,11 +231,20 @@ export default function ExamsPage() {
     const handleSaveMarks = async () => {
         setSaving(true);
         try {
-            const marks = Object.keys(marksData).map(sid => ({
-                studentId: sid,
-                score: marksData[sid].score,
-                remarks: marksData[sid].remarks
-            }));
+            // Filter out marks with empty scores and prepare payload
+            const marks = Object.keys(marksData)
+                .filter(sid => marksData[sid].score !== '' && marksData[sid].score !== null && marksData[sid].score !== undefined)
+                .map(sid => ({
+                    studentId: sid,
+                    score: Number(marksData[sid].score),
+                    remarks: marksData[sid].remarks || ''
+                }));
+
+            if (marks.length === 0) {
+                alert('Please enter at least one mark before saving');
+                setSaving(false);
+                return;
+            }
 
             await api.post('/exams/marks/bulk', {
                 examId: selectedExam._id,

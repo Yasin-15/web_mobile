@@ -270,12 +270,21 @@ export default function GradesPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const marksPayload = Object.values(marksData).map(m => ({
-                studentId: m.studentId,
-                score: m.score === '' ? null : Number(m.score),
-                maxMarks: Number(maxMarksGlobal),
-                remarks: m.remarks
-            }));
+            // Filter out marks with empty scores and prepare payload
+            const marksPayload = Object.values(marksData)
+                .filter(m => m.score !== '' && m.score !== null && m.score !== undefined)
+                .map(m => ({
+                    studentId: m.studentId,
+                    score: Number(m.score),
+                    maxMarks: Number(m.maxMarks || maxMarksGlobal),
+                    remarks: m.remarks || ''
+                }));
+
+            if (marksPayload.length === 0) {
+                toast.error('Please enter at least one mark before saving');
+                setSaving(false);
+                return;
+            }
 
             await api.post('/exams/marks/bulk', {
                 examId: selectedExam,
@@ -520,21 +529,21 @@ export default function GradesPage() {
                         <div
                             key={grade.grade}
                             className={`p-3 rounded-lg border-2 ${grade.grade === 'A+' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' :
-                                    grade.grade === 'A' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' :
-                                        grade.grade === 'B+' ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' :
-                                            grade.grade === 'B' ? 'bg-cyan-50 border-cyan-200 dark:bg-cyan-900/20 dark:border-cyan-800' :
-                                                grade.grade === 'C' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' :
-                                                    grade.grade === 'D' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800' :
-                                                        'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                                grade.grade === 'A' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' :
+                                    grade.grade === 'B+' ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' :
+                                        grade.grade === 'B' ? 'bg-cyan-50 border-cyan-200 dark:bg-cyan-900/20 dark:border-cyan-800' :
+                                            grade.grade === 'C' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' :
+                                                grade.grade === 'D' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800' :
+                                                    'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
                                 }`}
                         >
                             <div className={`text-2xl font-black mb-1 ${grade.grade === 'A+' ? 'text-emerald-700 dark:text-emerald-400' :
-                                    grade.grade === 'A' ? 'text-green-700 dark:text-green-400' :
-                                        grade.grade === 'B+' ? 'text-blue-700 dark:text-blue-400' :
-                                            grade.grade === 'B' ? 'text-cyan-700 dark:text-cyan-400' :
-                                                grade.grade === 'C' ? 'text-yellow-700 dark:text-yellow-400' :
-                                                    grade.grade === 'D' ? 'text-orange-700 dark:text-orange-400' :
-                                                        'text-red-700 dark:text-red-400'
+                                grade.grade === 'A' ? 'text-green-700 dark:text-green-400' :
+                                    grade.grade === 'B+' ? 'text-blue-700 dark:text-blue-400' :
+                                        grade.grade === 'B' ? 'text-cyan-700 dark:text-cyan-400' :
+                                            grade.grade === 'C' ? 'text-yellow-700 dark:text-yellow-400' :
+                                                grade.grade === 'D' ? 'text-orange-700 dark:text-orange-400' :
+                                                    'text-red-700 dark:text-red-400'
                                 }`}>
                                 {grade.grade}
                             </div>
