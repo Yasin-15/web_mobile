@@ -20,3 +20,8 @@ export const validateMarkEntry = (score: number | string, maxMarks: number | str
 
   return { isValid: true, message: '' };
 };
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
