@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const gradeController = require('../controllers/grade.controller');
-const { protect } = require('../middleware/auth.middleware');
+const { protect } = require('../middlewares/auth.middleware');
 
 // All routes require authentication
 router.use(protect);
