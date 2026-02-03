@@ -6,6 +6,67 @@ import { Save, Search, AlertCircle, FileText, CheckCircle2, TrendingUp, Download
 import html2canvas from 'html2canvas-pro';
 import jsPDF from 'jspdf';
 
+// Grade System Configuration
+const GRADE_SYSTEM = [
+    {
+        grade: "A+",
+        minPercentage: 90,
+        maxPercentage: 100,
+        gpa: 4.0,
+        remarks: "Excellent"
+    },
+    {
+        grade: "A",
+        minPercentage: 80,
+        maxPercentage: 89,
+        gpa: 3.7,
+        remarks: "Very Good"
+    },
+    {
+        grade: "B+",
+        minPercentage: 70,
+        maxPercentage: 79,
+        gpa: 3.3,
+        remarks: "Good"
+    },
+    {
+        grade: "B",
+        minPercentage: 60,
+        maxPercentage: 69,
+        gpa: 3.0,
+        remarks: "Above Average"
+    },
+    {
+        grade: "C",
+        minPercentage: 50,
+        maxPercentage: 59,
+        gpa: 2.0,
+        remarks: "Average"
+    },
+    {
+        grade: "D",
+        minPercentage: 40,
+        maxPercentage: 49,
+        gpa: 1.0,
+        remarks: "Below Average"
+    },
+    {
+        grade: "F",
+        minPercentage: 0,
+        maxPercentage: 39,
+        gpa: 0.0,
+        remarks: "Fail"
+    }
+];
+
+// Helper function to calculate grade from percentage
+const calculateGrade = (percentage: number) => {
+    const gradeInfo = GRADE_SYSTEM.find(
+        g => percentage >= g.minPercentage && percentage <= g.maxPercentage
+    );
+    return gradeInfo || { grade: "N/A", gpa: 0, remarks: "Not Available" };
+};
+
 interface Student {
     _id: string;
     firstName: string;
@@ -443,6 +504,54 @@ export default function GradesPage() {
                 )}
             </div>
 
+            {/* Grade System Reference Card */}
+            <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-900 dark:to-indigo-950 rounded-xl border border-indigo-200 dark:border-indigo-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-indigo-600 rounded-lg">
+                        <FileBadge className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-900 dark:text-white">Grading System Reference</h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">A+ to F scale with GPA equivalents</p>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                    {GRADE_SYSTEM.map((grade) => (
+                        <div
+                            key={grade.grade}
+                            className={`p-3 rounded-lg border-2 ${grade.grade === 'A+' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' :
+                                    grade.grade === 'A' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' :
+                                        grade.grade === 'B+' ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' :
+                                            grade.grade === 'B' ? 'bg-cyan-50 border-cyan-200 dark:bg-cyan-900/20 dark:border-cyan-800' :
+                                                grade.grade === 'C' ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800' :
+                                                    grade.grade === 'D' ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800' :
+                                                        'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+                                }`}
+                        >
+                            <div className={`text-2xl font-black mb-1 ${grade.grade === 'A+' ? 'text-emerald-700 dark:text-emerald-400' :
+                                    grade.grade === 'A' ? 'text-green-700 dark:text-green-400' :
+                                        grade.grade === 'B+' ? 'text-blue-700 dark:text-blue-400' :
+                                            grade.grade === 'B' ? 'text-cyan-700 dark:text-cyan-400' :
+                                                grade.grade === 'C' ? 'text-yellow-700 dark:text-yellow-400' :
+                                                    grade.grade === 'D' ? 'text-orange-700 dark:text-orange-400' :
+                                                        'text-red-700 dark:text-red-400'
+                                }`}>
+                                {grade.grade}
+                            </div>
+                            <div className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                                {grade.minPercentage}-{grade.maxPercentage}%
+                            </div>
+                            <div className="text-xs font-semibold text-slate-500 dark:text-slate-500 mb-1">
+                                GPA: {grade.gpa.toFixed(1)}
+                            </div>
+                            <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                {grade.remarks}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label className="block text-sm font-medium mb-1 text-slate-600 dark:text-slate-400">Exam</label>
@@ -519,6 +628,9 @@ export default function GradesPage() {
                                     <th className="p-4">Student</th>
                                     <th className="p-4 w-32">Marks Obtained</th>
                                     <th className="p-4 w-24">Max</th>
+                                    <th className="p-4 w-20">%</th>
+                                    <th className="p-4 w-20">Grade</th>
+                                    <th className="p-4 w-20">GPA</th>
                                     <th className="p-4">Remarks</th>
                                     <th className="p-4 w-16">State</th>
                                 </tr>
@@ -526,7 +638,10 @@ export default function GradesPage() {
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                                 {students.map((student, index) => {
                                     const score = marksData[student._id]?.score || '';
+                                    const percentage = score !== '' ? (Number(score) / Number(maxMarksGlobal)) * 100 : 0;
+                                    const gradeInfo = score !== '' ? calculateGrade(percentage) : null;
                                     const isPass = Number(score) >= (Number(maxMarksGlobal) * 0.4); // Assuming 40% pass
+
                                     return (
                                         <tr key={student._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                                             <td className="p-4 text-slate-500">{index + 1}</td>
@@ -544,17 +659,57 @@ export default function GradesPage() {
                                                         : 'border-slate-300 dark:border-slate-600'
                                                         }`}
                                                     placeholder="0"
+                                                    min="0"
+                                                    max={maxMarksGlobal}
                                                 />
                                             </td>
                                             <td className="p-4 text-slate-500">{maxMarksGlobal}</td>
                                             <td className="p-4">
-                                                <input
-                                                    type="text"
-                                                    value={marksData[student._id]?.remarks || ''}
-                                                    onChange={(e) => handleMarkChange(student._id, 'remarks', e.target.value)}
-                                                    className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500"
-                                                    placeholder="Optional..."
-                                                />
+                                                {score !== '' && (
+                                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                                        {percentage.toFixed(1)}%
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                {gradeInfo && (
+                                                    <span className={`px-3 py-1 rounded-lg font-bold text-sm ${gradeInfo.grade === 'A+' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                                        gradeInfo.grade === 'A' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                            gradeInfo.grade === 'B+' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                                                                gradeInfo.grade === 'B' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' :
+                                                                    gradeInfo.grade === 'C' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                                                        gradeInfo.grade === 'D' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                                            'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                                        }`}>
+                                                        {gradeInfo.grade}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                {gradeInfo && (
+                                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                                        {gradeInfo.gpa.toFixed(1)}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                {gradeInfo ? (
+                                                    <span className={`text-sm font-medium ${gradeInfo.grade === 'F' ? 'text-red-600 dark:text-red-400' :
+                                                        gradeInfo.grade === 'D' ? 'text-orange-600 dark:text-orange-400' :
+                                                            gradeInfo.grade.startsWith('A') ? 'text-emerald-600 dark:text-emerald-400' :
+                                                                'text-slate-600 dark:text-slate-400'
+                                                        }`}>
+                                                        {gradeInfo.remarks}
+                                                    </span>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={marksData[student._id]?.remarks || ''}
+                                                        onChange={(e) => handleMarkChange(student._id, 'remarks', e.target.value)}
+                                                        className="w-full p-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800 focus:ring-2 focus:ring-indigo-500"
+                                                        placeholder="Optional..."
+                                                    />
+                                                )}
                                             </td>
                                             <td className="p-4">
                                                 {score !== '' && (

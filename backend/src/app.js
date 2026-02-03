@@ -24,6 +24,7 @@ const analyticsRoutes = require('./routes/analytics.routes');
 const certificateRoutes = require('./routes/certificate.routes');
 const parentRoutes = require('./routes/parent.routes');
 const contactMessageRoutes = require('./routes/contactMessage.routes');
+const gradeRoutes = require('./routes/grade.routes');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/contact-messages', contactMessageRoutes);
+app.use('/api/grades', gradeRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'School Management System API is running' });
