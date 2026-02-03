@@ -13,6 +13,24 @@ class TeacherProvider with ChangeNotifier {
       _notifications.insert(0, data);
       notifyListeners();
     });
+
+    _socketService.on('student:created', (_) {
+      debugPrint('Student created event received');
+      fetchDashboardData();
+      fetchAllStudents();
+    });
+
+    _socketService.on('student:deleted', (_) {
+      debugPrint('Student deleted event received');
+      fetchDashboardData();
+      fetchAllStudents();
+    });
+
+    _socketService.on('exam:created', (_) {
+      debugPrint('Exam created event received');
+      fetchDashboardData(); // Refreshes stats like upcoming exams
+      fetchExams();
+    });
   }
 
   Map<String, dynamic>? _stats;

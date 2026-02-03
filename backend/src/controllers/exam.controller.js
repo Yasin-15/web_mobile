@@ -9,6 +9,7 @@ const Tenant = require('../models/tenant.model');
 const Class = require('../models/class.model');
 const { logAction } = require('../utils/logger');
 const { generateExcelMatrix, generateReportCardPDF } = require('../utils/reportGenerator');
+const { emitToTenant } = require('../config/socket');
 
 // @desc    Create a new exam
 // @route   POST /api/exams
@@ -26,6 +27,9 @@ exports.createExam = async (req, res) => {
             userId: req.user._id,
             tenantId: req.user.tenantId
         });
+
+        // Emit Socket Event
+        emitToTenant(req.user.tenantId, 'exam:created', exam);
 
         res.status(201).json({ success: true, data: exam });
     } catch (error) {
@@ -56,6 +60,10 @@ exports.updateExam = async (req, res) => {
             { new: true, runValidators: true }
         );
         if (!exam) return res.status(404).json({ message: 'Exam not found' });
+
+        // Emit Socket Event
+        emitToTenant(req.user.tenantId, 'exam:updated', exam);
+
         res.status(200).json({ success: true, data: exam });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -169,6 +177,9 @@ exports.bulkMarkEntry = async (req, res) => {
             tenantId
         });
 
+        // Emit Socket Event
+        emitToTenant(tenantId, 'marks:updated', { examId, subjectId, classId });
+
         res.status(200).json({ success: true, message: 'Marks updated successfully' });
     } catch (error) {
         console.error('Bulk Mark Entry Error:', error);
@@ -225,6 +236,9 @@ exports.deleteMark = async (req, res) => {
             userId: req.user._id,
             tenantId
         });
+
+        // Emit Socket Event
+        emitToTenant(tenantId, 'mark:deleted', { markId, studentId: mark.student, examId: mark.exam });
 
         res.status(200).json({ success: true, message: 'Mark deleted successfully' });
     } catch (error) {
@@ -296,6 +310,9 @@ exports.bulkDeleteMarks = async (req, res) => {
             userId: req.user._id,
             tenantId
         });
+
+        // Emit Socket Event
+        emitToTenant(tenantId, 'marks:bulk-deleted', { examId, subjectId, classId, deletedCount: result.deletedCount });
 
         res.status(200).json({
             success: true,

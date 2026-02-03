@@ -127,7 +127,7 @@ export default function ClassesPage() {
             grade: c.grade || '',
             room: c.room || '',
             classTeacher: c.classTeacher?._id || '',
-            subjects: c.subjects ? c.subjects.map((s: any) => ({
+            subjects: c.subjects ? c.subjects.filter((s: any) => s.subject).map((s: any) => ({
                 subject: s.subject?._id || s.subject,
                 teachers: s.teachers ? s.teachers.map((t: any) => t._id || t) : []
             })) : []

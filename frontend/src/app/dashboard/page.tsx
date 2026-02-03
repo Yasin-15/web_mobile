@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import api from '../utils/api';
+import { initSocket, disconnectSocket } from '../utils/socket';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -178,6 +179,32 @@ export default function DashboardPage() {
                 }
             };
             fetchDashboardData();
+
+            // Socket.IO Integration for Real-time Updates
+            if (userData?.tenantId) {
+                const socket = initSocket(userData.tenantId);
+
+                socket.on('student:created', () => {
+                    // Refresh stats or data
+                    fetchDashboardData();
+                });
+
+                socket.on('student:deleted', () => {
+                    fetchDashboardData();
+                });
+
+                socket.on('exam:created', () => {
+                    fetchDashboardData();
+                });
+
+                // Cleanup on unmount
+                return () => {
+                    socket.off('student:created');
+                    socket.off('student:deleted');
+                    socket.off('exam:created');
+                    disconnectSocket();
+                };
+            }
         }
     }, []);
 
@@ -619,7 +646,7 @@ export default function DashboardPage() {
                             { label: 'My Students', value: teacherData.totalStudents, icon: <Users className="w-6 h-6" />, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
                             { label: 'Weekly Hours', value: workload.totalHours, icon: <Clock className="w-6 h-6" />, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
                             { label: 'Periods Today', value: timetable.filter((t: any) => t.day === new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date())).length, icon: <Calendar className="w-6 h-6" />, color: 'text-amber-400', bg: 'bg-amber-400/10' },
-                            { label: 'Active Subjects', value: [...new Set(timetable.map((t: any) => t.subject?.name))].length, icon: <BookOpen className="w-6 h-6" />, color: 'text-rose-400', bg: 'bg-rose-400/10' },
+                            { label: 'Upcoming Exams', value: exams.filter((e: any) => new Date(e.startDate) > new Date()).length, icon: <FileText className="w-6 h-6" />, color: 'text-rose-400', bg: 'bg-rose-400/10' },
                         ].map((item, i) => (
 
                             <div key={i} className="glass dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-white/5 relative overflow-hidden group hover:border-slate-300 dark:hover:border-white/10 transition-all duration-300 shadow-sm">
@@ -632,8 +659,9 @@ export default function DashboardPage() {
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Schedule - Left Column */}
+                        <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5 lg:col-span-2">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
                                     <Clock className="w-5 h-5" />
@@ -663,39 +691,63 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                                    <Zap className="w-5 h-5" />
-                                </div>
-                                <span>Quick Actions</span>
-                            </h2>
+                        {/* Quick Actions & Tasks - Right Column */}
+                        <div className="space-y-8">
+                            <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                                        <Zap className="w-5 h-5" />
+                                    </div>
+                                    <span>Quick Actions</span>
+                                </h2>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                {[
-                                    { name: 'Mark Attendance', icon: <CheckCircle2 className="w-8 h-8" />, href: '/dashboard/attendance', color: 'hover:bg-indigo-600' },
-                                    { name: 'Enter Marks', icon: <BarChart3 className="w-8 h-8" />, href: '/dashboard/exams', color: 'hover:bg-emerald-600' },
-                                    { name: 'My Classes', icon: <School className="w-8 h-8" />, href: '/dashboard/classes', color: 'hover:bg-amber-600' },
-                                    { name: 'Resources', icon: <FolderOpen className="w-8 h-8" />, href: '/dashboard/subjects', color: 'hover:bg-rose-600' },
-                                ].map((action, i) => (
-                                    <Link key={i} href={action.href} className={`flex flex-col items-center justify-center p-6 rounded-3xl bg-white/5 border border-white/5 transition-all duration-300 group ${action.color}`}>
-                                        <div className="mb-3 text-slate-400 group-hover:text-white group-hover:scale-125 transition-transform">{action.icon}</div>
-                                        <span className="text-sm font-bold text-slate-300 group-hover:text-slate-900 dark:text-white">{action.name}</span>
-                                    </Link>
-                                ))}
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[
+                                        { name: 'Mark Attendance', icon: <CheckCircle2 className="w-6 h-6" />, href: '/dashboard/attendance', color: 'hover:bg-indigo-600' },
+                                        { name: 'Enter Marks', icon: <BarChart3 className="w-6 h-6" />, href: '/dashboard/exams', color: 'hover:bg-emerald-600' },
+                                        { name: 'My Classes', icon: <School className="w-6 h-6" />, href: '/dashboard/classes', color: 'hover:bg-amber-600' },
+                                        { name: 'Resources', icon: <FolderOpen className="w-6 h-6" />, href: '/dashboard/subjects', color: 'hover:bg-rose-600' },
+                                        { name: 'Payslips', icon: <DollarSign className="w-6 h-6" />, href: '/dashboard/payslips', color: 'hover:bg-purple-600' },
+                                        { name: 'Communication', icon: <Bell className="w-6 h-6" />, href: '/dashboard/communication', color: 'hover:bg-cyan-600' },
+                                    ].map((action, i) => (
+                                        <Link key={i} href={action.href} className={`flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 transition-all duration-300 group ${action.color}`}>
+                                            <div className="mb-2 text-slate-400 group-hover:text-white group-hover:scale-110 transition-transform">{action.icon}</div>
+                                            <span className="text-[10px] font-bold text-slate-400 group-hover:text-white text-center leading-tight">{action.name}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20">
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </div>
+                                    <span>Daily Tasks</span>
+                                </h2>
+                                <div className="space-y-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+                                    {tasks.length > 0 ? tasks.slice(0, 5).map((task: any) => (
+                                        <div key={task._id} className="p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
+                                            <p className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition">{task.title}</p>
+                                            <p className="text-[10px] text-slate-500">{new Date(task.createdAt).toLocaleDateString()}</p>
+                                        </div>
+                                    )) : (
+                                        <div className="py-10 text-center text-slate-600 italic text-xs">No pending tasks.</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20">
-                                    <BarChart3 className="w-5 h-5" />
-                                </div>
-                                <span>Subject Workload Distribution</span>
-                            </h2>
-                            <div className="h-[300px] w-full">
-                                {teacherWorkloadData ? <Pie data={teacherWorkloadData} options={pieChartOptions} /> : <div className="h-full flex items-center justify-center text-slate-500">No data available</div>}
+                    <div className="glass-dark p-8 rounded-[2.5rem] border border-white/5">
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20">
+                                <BarChart3 className="w-5 h-5" />
                             </div>
+                            <span>Subject Workload Distribution</span>
+                        </h2>
+                        <div className="h-[250px] w-full">
+                            {teacherWorkloadData ? <Pie data={teacherWorkloadData} options={pieChartOptions} /> : <div className="h-full flex items-center justify-center text-slate-500">No data available</div>}
                         </div>
                     </div>
 

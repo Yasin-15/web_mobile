@@ -12,12 +12,12 @@ const { protect, authorize } = require('../middlewares/auth.middleware');
 router.use(protect);
 
 router.route('/')
-    .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent'), getClasses)
-    .post(authorize('school-admin'), createClass);
+    .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent', 'super-admin'), getClasses)
+    .post(authorize('school-admin', 'super-admin'), createClass);
 
 router.route('/:id')
-    .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent'), getClass)
-    .put(authorize('school-admin'), updateClass)
-    .delete(authorize('school-admin'), deleteClass);
+    .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent', 'super-admin'), getClass)
+    .put(authorize('school-admin', 'super-admin'), updateClass)
+    .delete(authorize('school-admin', 'super-admin'), deleteClass);
 
 module.exports = router;

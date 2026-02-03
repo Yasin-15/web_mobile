@@ -5,6 +5,7 @@ const Exam = require('../models/exam.model');
 const Mark = require('../models/mark.model');
 const { logAction } = require('../utils/logger');
 const generatePassword = require('../utils/generatePassword');
+const { emitToTenant } = require('../config/socket');
 
 // @desc    Register a new student
 // @route   POST /api/students
@@ -122,6 +123,9 @@ exports.createStudent = async (req, res) => {
             userId: req.user._id,
             tenantId
         });
+
+        // Emit Socket Event
+        emitToTenant(tenantId, 'student:created', student);
 
         res.status(201).json({
             success: true,
@@ -283,6 +287,9 @@ exports.updateStudent = async (req, res) => {
             tenantId: req.user.tenantId
         });
 
+        // Emit Socket Event
+        emitToTenant(req.user.tenantId, 'student:updated', student);
+
         res.status(200).json({ success: true, data: student });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -311,6 +318,9 @@ exports.deleteStudent = async (req, res) => {
             userId: req.user._id,
             tenantId: req.user.tenantId
         });
+
+        // Emit Socket Event
+        emitToTenant(req.user.tenantId, 'student:deleted', student);
 
         res.status(200).json({ success: true, message: 'Student record deleted' });
     } catch (error) {
@@ -576,12 +586,17 @@ exports.bulkImportStudents = async (req, res) => {
             tenantId
         });
 
+        const successCount = importResults.filter(r => r.status === 'success').length;
+        if (successCount > 0) {
+            emitToTenant(tenantId, 'student:bulk-imported', { count: successCount });
+        }
+
         res.status(200).json({
             success: true,
             results: importResults,
             summary: {
                 total: students.length,
-                success: importResults.filter(r => r.status === 'success').length,
+                success: successCount,
                 failed: importResults.filter(r => r.status === 'failed').length
             }
         });
