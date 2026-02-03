@@ -5,6 +5,8 @@ const {
     getExams,
     updateExam,
     bulkMarkEntry,
+    deleteMark,
+    bulkDeleteMarks,
     getMarks,
     getStudentReport,
     approveResults,
@@ -38,6 +40,8 @@ router.put('/:id/approve', authorize('school-admin'), approveResults);
 
 // Mark Entry & Reports
 router.post('/marks/bulk', authorize('school-admin', 'teacher'), bulkMarkEntry);
+router.delete('/marks/bulk', authorize('school-admin', 'teacher'), bulkDeleteMarks);
+router.delete('/marks/:markId', authorize('school-admin', 'teacher'), deleteMark);
 router.get('/marks', authorize('school-admin', 'teacher', 'student', 'parent'), getMarks);
 router.get('/report/:examId/:studentId', authorize('school-admin', 'teacher', 'student', 'parent'), getStudentReport);
 router.get('/student-grades/:studentId?', authorize('school-admin', 'teacher', 'student', 'parent'), getStudentGrades);

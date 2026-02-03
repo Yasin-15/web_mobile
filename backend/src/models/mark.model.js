@@ -44,6 +44,19 @@ const markSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    grade: {
+        type: String,
+        trim: true
+    },
+    gpa: {
+        type: Number,
+        min: 0,
+        max: 4.0
+    },
+    gradeRemarks: {
+        type: String,
+        trim: true
+    },
     tenantId: {
         type: String,
         required: true,

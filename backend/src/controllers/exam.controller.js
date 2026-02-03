@@ -111,9 +111,30 @@ exports.bulkMarkEntry = async (req, res) => {
             }
         }
 
+        // Fetch active grade system to calculate grades
+        const gradeSystem = await GradeSystem.findOne({ tenantId, isActive: true });
+        const gradeConfigs = gradeSystem ? gradeSystem.grades : [];
+
         const bulkOps = filteredMarks.map(m => {
             const marksObtained = Number(m.score);
             const mMax = Number(m.maxMarks) || Number(globalMaxMarks) || 100;
+            const percentage = (marksObtained / mMax) * 100;
+
+            // Calculate grade, gpa, and remarks
+            let grade = null;
+            let gpa = null;
+            let gradeRemarks = null;
+
+            if (gradeConfigs.length > 0) {
+                const gradeInfo = gradeConfigs.find(
+                    g => percentage >= g.minPercentage && percentage <= g.maxPercentage
+                );
+                if (gradeInfo) {
+                    grade = gradeInfo.grade;
+                    gpa = gradeInfo.gpa;
+                    gradeRemarks = gradeInfo.remarks;
+                }
+            }
 
             return {
                 updateOne: {
@@ -123,6 +144,9 @@ exports.bulkMarkEntry = async (req, res) => {
                             marksObtained,
                             maxMarks: mMax,
                             remarks: m.remarks || '',
+                            grade,
+                            gpa,
+                            gradeRemarks,
                             class: classId,
                             gradedBy: req.user._id
                         }
@@ -149,6 +173,135 @@ exports.bulkMarkEntry = async (req, res) => {
             return res.status(400).json({ success: false, message: error.message });
         }
         res.status(500).json({ success: false, message: 'Internal server error while saving marks' });
+    }
+};
+
+// @desc    Delete a single mark entry
+// @route   DELETE /api/exams/marks/:markId
+exports.deleteMark = async (req, res) => {
+    try {
+        const { markId } = req.params;
+        const tenantId = req.user.tenantId;
+
+        const mark = await Mark.findOne({ _id: markId, tenantId });
+
+        if (!mark) {
+            return res.status(404).json({ success: false, message: 'Mark not found' });
+        }
+
+        // Check if exam is approved
+        const exam = await Exam.findOne({ _id: mark.exam, tenantId });
+        if (exam && exam.isApproved && req.user.role !== 'school-admin') {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete marks for approved exams. Contact admin to revert approval.'
+            });
+        }
+
+        // Authority Check for teachers
+        if (req.user.role === 'teacher') {
+            const [isAssigned, isClassTeacher] = await Promise.all([
+                Timetable.findOne({ teacher: req.user._id, class: mark.class, subject: mark.subject, tenantId }),
+                Class.findOne({ _id: mark.class, classTeacher: req.user._id, tenantId })
+            ]);
+
+            if (!isAssigned && !isClassTeacher) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. You are not assigned to this class and subject.'
+                });
+            }
+        }
+
+        await Mark.findByIdAndDelete(markId);
+
+        await logAction({
+            action: 'DELETE',
+            module: 'MARK',
+            details: `Deleted mark for student ${mark.student}`,
+            userId: req.user._id,
+            tenantId
+        });
+
+        res.status(200).json({ success: true, message: 'Mark deleted successfully' });
+    } catch (error) {
+        console.error('Delete Mark Error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error while deleting mark' });
+    }
+};
+
+// @desc    Bulk delete marks
+// @route   DELETE /api/exams/marks/bulk
+exports.bulkDeleteMarks = async (req, res) => {
+    try {
+        const { examId, subjectId, classId, studentIds } = req.body;
+        const tenantId = req.user.tenantId;
+
+        if (!examId || !subjectId || !classId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: examId, subjectId, and classId are required.'
+            });
+        }
+
+        // Check if exam is approved
+        const exam = await Exam.findOne({ _id: examId, tenantId });
+        if (!exam) {
+            return res.status(404).json({ message: 'Exam not found' });
+        }
+
+        if (exam.isApproved && req.user.role !== 'school-admin') {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete marks for approved exams. Contact admin to revert approval.'
+            });
+        }
+
+        // Authority Check for teachers
+        if (req.user.role === 'teacher') {
+            const [isAssigned, isClassTeacher] = await Promise.all([
+                Timetable.findOne({ teacher: req.user._id, class: classId, subject: subjectId, tenantId }),
+                Class.findOne({ _id: classId, classTeacher: req.user._id, tenantId })
+            ]);
+
+            if (!isAssigned && !isClassTeacher) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. You are not assigned to this class and subject.'
+                });
+            }
+        }
+
+        const deleteQuery = {
+            exam: examId,
+            subject: subjectId,
+            class: classId,
+            tenantId
+        };
+
+        // If specific students are provided, delete only those
+        if (studentIds && studentIds.length > 0) {
+            deleteQuery.student = { $in: studentIds };
+        }
+
+        const result = await Mark.deleteMany(deleteQuery);
+
+        await logAction({
+            action: 'DELETE',
+            module: 'MARK',
+            details: `Bulk deleted ${result.deletedCount} marks for Exam ${examId}, Subject ${subjectId}`,
+            userId: req.user._id,
+            tenantId
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Successfully deleted ${result.deletedCount} mark(s)`,
+            deletedCount: result.deletedCount
+        });
+    } catch (error) {
+        console.error('Bulk Delete Marks Error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error while deleting marks' });
     }
 };
 
