@@ -106,7 +106,14 @@ export default function ClassesPage() {
             setEditId(null);
             fetchData();
         } catch (err: any) {
-            alert(err.response?.data?.message || "Operation failed");
+            const errorMessage = err.response?.data?.message || err.response?.data?.error || "Operation failed";
+            const errorDetails = err.response?.data?.errors;
+            
+            if (errorDetails && Array.isArray(errorDetails)) {
+                alert(`${errorMessage}\n\nDetails:\n${errorDetails.map((e: any) => `- ${e.field}: ${e.message}`).join('\n')}`);
+            } else {
+                alert(errorMessage);
+            }
         }
     };
 

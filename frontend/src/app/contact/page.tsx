@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { validateContactMessage, ValidationError } from '@/utils/validation';
+import { ValidationMessage } from '@/components/ui/ValidationMessage';
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -14,18 +16,45 @@ export default function ContactPage() {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' });
+    const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
         setFormData({
             ...formData,
-            [e.target.id]: e.target.value
+            [id]: value
         });
+        // Clear field error when user starts typing
+        if (fieldErrors[id]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[id];
+                return newErrors;
+            });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
         setSubmitStatus({ type: null, message: '' });
+        setValidationErrors([]);
+        setFieldErrors({});
+
+        // Client-side validation
+        const validationResult = validateContactMessage(formData);
+        if (!validationResult.isValid && validationResult.errors) {
+            setValidationErrors(validationResult.errors);
+            // Map errors to field errors for individual field highlighting
+            const fieldErrorsMap: Record<string, string> = {};
+            validationResult.errors.forEach(error => {
+                fieldErrorsMap[error.field] = error.message;
+            });
+            setFieldErrors(fieldErrorsMap);
+            setIsSubmitting(false);
+            return;
+        }
 
         try {
             const response = await fetch('http://localhost:5000/api/contact-messages', {
@@ -52,11 +81,27 @@ export default function ContactPage() {
                     message: '',
                     role: 'Other'
                 });
+                setValidationErrors([]);
+                setFieldErrors({});
             } else {
-                setSubmitStatus({
-                    type: 'error',
-                    message: data.message || 'Failed to send message. Please try again.'
-                });
+                // Handle API validation errors
+                if (data.errors && Array.isArray(data.errors)) {
+                    setValidationErrors(data.errors);
+                    const fieldErrorsMap: Record<string, string> = {};
+                    data.errors.forEach((error: ValidationError) => {
+                        fieldErrorsMap[error.field] = error.message;
+                    });
+                    setFieldErrors(fieldErrorsMap);
+                    setSubmitStatus({
+                        type: 'error',
+                        message: data.message || 'Please fix the validation errors below.'
+                    });
+                } else {
+                    setSubmitStatus({
+                        type: 'error',
+                        message: data.message || 'Failed to send message. Please try again.'
+                    });
+                }
             }
         } catch (error) {
             console.error('Error submitting contact form:', error);
@@ -117,6 +162,13 @@ export default function ContactPage() {
                             </div>
                         )}
 
+                        {/* Validation Errors */}
+                        {validationErrors.length > 0 && (
+                            <div className="mb-6">
+                                <ValidationMessage errors={validationErrors} />
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
@@ -129,9 +181,14 @@ export default function ContactPage() {
                                         value={formData.firstName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                        className={`w-full px-4 py-3 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${
+                                            fieldErrors.firstName ? 'border-red-500 bg-red-500/10' : 'border-white/10'
+                                        }`}
                                         placeholder="Enter Your First Name"
                                     />
+                                    {fieldErrors.firstName && (
+                                        <p className="mt-1 text-sm text-red-400">{fieldErrors.firstName}</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="lastName" className="block text-sm font-medium text-slate-300 mb-2">
@@ -143,9 +200,14 @@ export default function ContactPage() {
                                         value={formData.lastName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                        className={`w-full px-4 py-3 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${
+                                            fieldErrors.lastName ? 'border-red-500 bg-red-500/10' : 'border-white/10'
+                                        }`}
                                         placeholder="Enter Your Last Name"
                                     />
+                                    {fieldErrors.lastName && (
+                                        <p className="mt-1 text-sm text-red-400">{fieldErrors.lastName}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -159,9 +221,14 @@ export default function ContactPage() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     required
-                                    className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                                    className={`w-full px-4 py-3 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition ${
+                                        fieldErrors.email ? 'border-red-500 bg-red-500/10' : 'border-white/10'
+                                    }`}
                                     placeholder="Enter Your Email Address"
                                 />
+                                {fieldErrors.email && (
+                                    <p className="mt-1 text-sm text-red-400">{fieldErrors.email}</p>
+                                )}
                             </div>
 
                             <div>
@@ -205,9 +272,14 @@ export default function ContactPage() {
                                     value={formData.message}
                                     onChange={handleChange}
                                     required
-                                    className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none"
+                                    className={`w-full px-4 py-3 bg-slate-900/50 border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none ${
+                                        fieldErrors.message ? 'border-red-500 bg-red-500/10' : 'border-white/10'
+                                    }`}
                                     placeholder="Tell us about your needs..."
                                 ></textarea>
+                                {fieldErrors.message && (
+                                    <p className="mt-1 text-sm text-red-400">{fieldErrors.message}</p>
+                                )}
                             </div>
 
                             <button

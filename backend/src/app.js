@@ -25,6 +25,7 @@ const certificateRoutes = require('./routes/certificate.routes');
 const parentRoutes = require('./routes/parent.routes');
 const contactMessageRoutes = require('./routes/contactMessage.routes');
 const gradeRoutes = require('./routes/grade.routes');
+const { handleValidationError } = require('./middlewares/validation.middleware');
 
 const app = express();
 
@@ -65,6 +66,9 @@ app.use('/api/grades', gradeRoutes);
 app.get('/', (req, res) => {
     res.json({ message: 'School Management System API is running' });
 });
+
+// Validation Error Handling (must be before general error handler)
+app.use(handleValidationError);
 
 // Error Handling
 app.use((err, req, res, next) => {
