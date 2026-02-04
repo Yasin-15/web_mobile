@@ -43,10 +43,34 @@ router.put('/:id/approve', authorize('school-admin'), validateObjectId('id'), ap
 router.put('/:id/unapprove', authorize('school-admin'), validateObjectId('id'), unapproveResults);
 
 // Mark Entry & Reports
-router.post('/marks/bulk', authorize('school-admin', 'teacher'), validate(bulkMarkEntrySchema), validateMarks, bulkMarkEntry);
-router.delete('/marks/bulk', authorize('school-admin', 'teacher'), bulkDeleteMarks);
-router.delete('/marks/:markId', authorize('school-admin', 'teacher'), validateObjectId('markId'), deleteMark);
-router.get('/marks', authorize('school-admin', 'teacher', 'student', 'parent'), getMarks);
+// Note: Frontend exposes mark entry to general staff (including receptionists),
+// so we include 'receptionist' here to keep permissions consistent.
+router.post(
+    '/marks/bulk',
+    authorize('school-admin', 'teacher', 'receptionist'),
+    validate(bulkMarkEntrySchema),
+    validateMarks,
+    bulkMarkEntry
+);
+
+router.delete(
+    '/marks/bulk',
+    authorize('school-admin', 'teacher', 'receptionist'),
+    bulkDeleteMarks
+);
+
+router.delete(
+    '/marks/:markId',
+    authorize('school-admin', 'teacher', 'receptionist'),
+    validateObjectId('markId'),
+    deleteMark
+);
+
+router.get(
+    '/marks',
+    authorize('school-admin', 'teacher', 'student', 'parent', 'receptionist'),
+    getMarks
+);
 router.get('/report/:examId/:studentId', authorize('school-admin', 'teacher', 'student', 'parent'), validateObjectId('examId'), validateObjectId('studentId'), getStudentReport);
 router.get('/student-grades/:studentId?', authorize('school-admin', 'teacher', 'student', 'parent'), getStudentGrades);
 router.get('/export-matrix', authorize('school-admin', 'teacher'), exportExcelMatrix);
