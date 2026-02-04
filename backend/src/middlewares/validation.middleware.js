@@ -8,7 +8,7 @@ const customValidations = {
             const id = req.params[paramName];
             const objectIdPattern = /^[0-9a-fA-F]{24}$/;
             
-            if (!objectIdPattern.test(id)) {
+            if (!id || !objectIdPattern.test(id)) {
                 return res.status(400).json({
                     success: false,
                     message: `Invalid ${paramName} format`,

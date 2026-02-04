@@ -1,6 +1,7 @@
 const Class = require('../models/class.model');
 const Timetable = require('../models/timetable.model');
 const User = require('../models/user.model');
+const Subject = require('../models/subject.model');
 const { logAction } = require('../utils/logger');
 
 // @desc    Create a new class
@@ -16,6 +17,58 @@ exports.createClass = async (req, res) => {
             return res.status(400).json({ message: 'Class with this section already exists' });
         }
 
+        // Validate and process subjects with teachers
+        let validatedSubjects = [];
+        if (subjects && Array.isArray(subjects) && subjects.length > 0) {
+            for (const sub of subjects) {
+                // Validate subject structure
+                if (!sub.subject) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'Each subject entry must have a subject ID' 
+                    });
+                }
+
+                // Validate subject exists
+                const subjectExists = await Subject.findOne({ 
+                    _id: sub.subject, 
+                    tenantId 
+                });
+                
+                if (!subjectExists) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Subject with ID ${sub.subject} not found` 
+                    });
+                }
+
+                // Validate teachers array
+                const teachers = Array.isArray(sub.teachers) ? sub.teachers : [];
+                
+                // Validate each teacher exists and is a teacher role
+                if (teachers.length > 0) {
+                    const validTeachers = await User.find({
+                        _id: { $in: teachers },
+                        tenantId,
+                        role: 'teacher'
+                    });
+
+                    if (validTeachers.length !== teachers.length) {
+                        return res.status(400).json({ 
+                            success: false, 
+                            message: 'One or more teacher IDs are invalid or not teachers' 
+                        });
+                    }
+                }
+
+                // Add validated subject entry
+                validatedSubjects.push({
+                    subject: sub.subject,
+                    teachers: teachers
+                });
+            }
+        }
+
         const newClass = await Class.create({
             name,
             section,
@@ -24,7 +77,7 @@ exports.createClass = async (req, res) => {
             room,
             classTeacher: classTeacher || null,
             tenantId,
-            subjects: subjects || []
+            subjects: validatedSubjects
         });
 
         await logAction({
@@ -139,7 +192,69 @@ exports.updateClass = async (req, res) => {
         if (classTeacher !== undefined) academicClass.classTeacher = classTeacher || null;
         if (gradeLevel !== undefined) academicClass.gradeLevel = gradeLevel;
         if (grade !== undefined) academicClass.grade = grade;
-        if (subjects !== undefined) academicClass.subjects = subjects;
+        
+        // Validate and process subjects with teachers
+        if (subjects !== undefined) {
+            if (!Array.isArray(subjects)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Subjects must be an array' 
+                });
+            }
+
+            // Validate each subject entry
+            const validatedSubjects = [];
+
+            for (const sub of subjects) {
+                // Validate subject structure
+                if (!sub.subject) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: 'Each subject entry must have a subject ID' 
+                    });
+                }
+
+                // Validate subject exists
+                const subjectExists = await Subject.findOne({ 
+                    _id: sub.subject, 
+                    tenantId: req.user.tenantId 
+                });
+                
+                if (!subjectExists) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Subject with ID ${sub.subject} not found` 
+                    });
+                }
+
+                // Validate teachers array
+                const teachers = Array.isArray(sub.teachers) ? sub.teachers : [];
+                
+                // Validate each teacher exists and is a teacher role
+                if (teachers.length > 0) {
+                    const validTeachers = await User.find({
+                        _id: { $in: teachers },
+                        tenantId: req.user.tenantId,
+                        role: 'teacher'
+                    });
+
+                    if (validTeachers.length !== teachers.length) {
+                        return res.status(400).json({ 
+                            success: false, 
+                            message: 'One or more teacher IDs are invalid or not teachers' 
+                        });
+                    }
+                }
+
+                // Add validated subject entry
+                validatedSubjects.push({
+                    subject: sub.subject,
+                    teachers: teachers
+                });
+            }
+
+            academicClass.subjects = validatedSubjects;
+        }
 
         await academicClass.save();
 

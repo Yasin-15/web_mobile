@@ -21,6 +21,8 @@ const {
     getStudentGrades
 } = require('../controllers/exam.controller');
 const { protect, authorize } = require('../middlewares/auth.middleware');
+const { validate, validateObjectId, validateMarks } = require('../middlewares/validation.middleware');
+const { examSchema, bulkMarkEntrySchema } = require('../utils/validationSchemas');
 
 router.use(protect);
 
@@ -32,20 +34,20 @@ router.route('/grade-system')
 // Exam CRUD
 router.route('/')
     .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent'), getExams)
-    .post(authorize('school-admin'), createExam);
+    .post(authorize('school-admin'), validate(examSchema), createExam);
 
 router.route('/:id')
-    .put(authorize('school-admin'), updateExam);
+    .put(authorize('school-admin'), validateObjectId('id'), updateExam);
 
-router.put('/:id/approve', authorize('school-admin'), approveResults);
-router.put('/:id/unapprove', authorize('school-admin'), unapproveResults);
+router.put('/:id/approve', authorize('school-admin'), validateObjectId('id'), approveResults);
+router.put('/:id/unapprove', authorize('school-admin'), validateObjectId('id'), unapproveResults);
 
 // Mark Entry & Reports
-router.post('/marks/bulk', authorize('school-admin', 'teacher'), bulkMarkEntry);
+router.post('/marks/bulk', authorize('school-admin', 'teacher'), validate(bulkMarkEntrySchema), validateMarks, bulkMarkEntry);
 router.delete('/marks/bulk', authorize('school-admin', 'teacher'), bulkDeleteMarks);
-router.delete('/marks/:markId', authorize('school-admin', 'teacher'), deleteMark);
+router.delete('/marks/:markId', authorize('school-admin', 'teacher'), validateObjectId('markId'), deleteMark);
 router.get('/marks', authorize('school-admin', 'teacher', 'student', 'parent'), getMarks);
-router.get('/report/:examId/:studentId', authorize('school-admin', 'teacher', 'student', 'parent'), getStudentReport);
+router.get('/report/:examId/:studentId', authorize('school-admin', 'teacher', 'student', 'parent'), validateObjectId('examId'), validateObjectId('studentId'), getStudentReport);
 router.get('/student-grades/:studentId?', authorize('school-admin', 'teacher', 'student', 'parent'), getStudentGrades);
 router.get('/export-matrix', authorize('school-admin', 'teacher'), exportExcelMatrix);
 
@@ -54,7 +56,7 @@ router.route('/complaints')
     .get(getComplaints)
     .post(authorize('student'), submitComplaint);
 
-router.get('/analytics/:examId', authorize('school-admin', 'teacher'), getExamAnalytics);
-router.get('/top-performers/:examId/:classId', authorize('school-admin', 'teacher'), getTopPerformers);
+router.get('/analytics/:examId', authorize('school-admin', 'teacher'), validateObjectId('examId'), getExamAnalytics);
+router.get('/top-performers/:examId/:classId', authorize('school-admin', 'teacher'), validateObjectId('examId'), validateObjectId('classId'), getTopPerformers);
 
 module.exports = router;

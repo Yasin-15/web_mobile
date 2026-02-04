@@ -8,6 +8,7 @@ const {
     deleteClass
 } = require('../controllers/class.controller');
 const { protect, authorize } = require('../middlewares/auth.middleware');
+const { validateObjectId } = require('../middlewares/validation.middleware');
 
 router.use(protect);
 
@@ -16,8 +17,8 @@ router.route('/')
     .post(authorize('school-admin', 'super-admin'), createClass);
 
 router.route('/:id')
-    .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent', 'super-admin'), getClass)
-    .put(authorize('school-admin', 'super-admin'), updateClass)
-    .delete(authorize('school-admin', 'super-admin'), deleteClass);
+    .get(authorize('school-admin', 'teacher', 'receptionist', 'student', 'parent', 'super-admin'), validateObjectId('id'), getClass)
+    .put(authorize('school-admin', 'super-admin'), validateObjectId('id'), updateClass)
+    .delete(authorize('school-admin', 'super-admin'), validateObjectId('id'), deleteClass);
 
 module.exports = router;
