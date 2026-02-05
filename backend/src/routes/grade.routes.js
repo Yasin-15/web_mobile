@@ -19,7 +19,8 @@ router.get('/', gradeController.getAllGradeSystems);
 router.post('/calculate', gradeController.calculateGrade);
 
 // Bulk create grades (admin, teacher)
-router.post('/bulk', authorize('admin', 'teacher'), gradeController.bulkCreateGrades);
+// Bulk create grades (admin, teacher) - TODO: Implement if needed, currently undefined
+// router.post('/bulk', authorize('admin', 'teacher'), gradeController.bulkCreateGrades);
 
 // Get grade system by ID
 router.get('/:id', gradeController.getGradeSystemById);
