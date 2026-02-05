@@ -41,6 +41,16 @@ const invoiceSchema = new mongoose.Schema({
         enum: ['unpaid', 'partially_paid', 'paid', 'void'],
         default: 'unpaid'
     },
+    // Stripe-specific fields
+    stripePaymentIntentId: {
+        type: String,
+        trim: true
+    },
+    paymentGateway: {
+        type: String,
+        enum: ['manual', 'stripe'],
+        default: 'manual'
+    },
     tenantId: {
         type: String,
         required: true,

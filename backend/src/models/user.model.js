@@ -55,7 +55,10 @@ const userSchema = new mongoose.Schema({
         parentIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
         parentRelationship: { type: String, enum: ['Father', 'Mother', 'Guardian', 'Other'], default: 'Guardian' },
         qualification: String,
-        salary: String
+        salary: String,
+        // Stripe integration
+        stripeCustomerId: String,
+        children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] // for parents
     },
     lastLogin: Date
 }, {

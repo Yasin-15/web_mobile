@@ -59,9 +59,28 @@ class _StudentGradesScreenState extends State<StudentGradesScreen> {
             onPressed: () => ZoomDrawer.of(context)?.toggle(),
           ),
         ),
-        title: const Text(
-          'Grades',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Column(
+          children: [
+            const Text(
+              'Grades',
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (context.watch<AuthProvider>().user != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${context.watch<AuthProvider>().user!['firstName']} ${context.watch<AuthProvider>().user!['lastName']} '
+                '(${context.watch<AuthProvider>().user!['profile']?['admissionNo'] ?? context.watch<AuthProvider>().user!['profile']?['rollNo'] ?? ''})',
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 12,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
+            ],
+          ],
         ),
         actions: [
           IconButton(

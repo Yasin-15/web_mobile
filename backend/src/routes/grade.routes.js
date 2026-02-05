@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const gradeController = require('../controllers/grade.controller');
-const { protect } = require('../middlewares/auth.middleware');
+const { protect, authorize } = require('../middlewares/auth.middleware');
 
 // All routes require authentication
 router.use(protect);
 
 // Create a new grade system
-router.post('/', gradeController.createGradeSystem);
+router.post('/', authorize('admin', 'teacher'), gradeController.createGradeSystem);
 
 // Get active grade system
 router.get('/active', gradeController.getActiveGradeSystem);
@@ -18,16 +18,19 @@ router.get('/', gradeController.getAllGradeSystems);
 // Calculate grade from percentage
 router.post('/calculate', gradeController.calculateGrade);
 
+// Bulk create grades (admin, teacher)
+router.post('/bulk', authorize('admin', 'teacher'), gradeController.bulkCreateGrades);
+
 // Get grade system by ID
 router.get('/:id', gradeController.getGradeSystemById);
 
 // Update grade system
-router.put('/:id', gradeController.updateGradeSystem);
+router.put('/:id', authorize('admin', 'teacher'), gradeController.updateGradeSystem);
 
 // Delete grade system
-router.delete('/:id', gradeController.deleteGradeSystem);
+router.delete('/:id', authorize('admin', 'teacher'), gradeController.deleteGradeSystem);
 
 // Toggle grade system status (activate/deactivate)
-router.patch('/:id/toggle', gradeController.toggleGradeSystemStatus);
+router.patch('/:id/toggle', authorize('admin', 'teacher'), gradeController.toggleGradeSystemStatus);
 
 module.exports = router;

@@ -16,12 +16,34 @@ const paymentSchema = new mongoose.Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['cash', 'bank_transfer', 'cheque', 'online'],
+        enum: ['cash', 'bank_transfer', 'cheque', 'online', 'stripe'],
         required: true
     },
     transactionId: {
         type: String,
         trim: true
+    },
+    // Stripe-specific fields
+    stripePaymentIntentId: {
+        type: String,
+        trim: true
+    },
+    stripeChargeId: {
+        type: String,
+        trim: true
+    },
+    stripeCustomerId: {
+        type: String,
+        trim: true
+    },
+    stripeReceiptUrl: {
+        type: String,
+        trim: true
+    },
+    paymentGateway: {
+        type: String,
+        enum: ['manual', 'stripe'],
+        default: 'manual'
     },
     tenantId: {
         type: String,

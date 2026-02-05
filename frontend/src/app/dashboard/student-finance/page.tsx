@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { Elements } from '@stripe/react-stripe-js';
+import stripePromise from '../../../lib/stripe';
+import StripePaymentForm from '../../../components/StripePaymentForm';
 import api from '../../utils/api';
 import {
     DollarSign,
@@ -10,7 +13,8 @@ import {
     AlertCircle,
     CheckCircle2,
     Calendar,
-    ArrowUpRight
+    ArrowUpRight,
+    X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -23,6 +27,10 @@ export default function StudentFinancePage() {
     const [tenant, setTenant] = useState<any>(null);
     const [children, setChildren] = useState([]);
     const [selectedChild, setSelectedChild] = useState<any>(null);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [paymentLoading, setPaymentLoading] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -71,6 +79,52 @@ export default function StudentFinancePage() {
     const handleChildSelect = (child: any) => {
         setSelectedChild(child);
         fetchChildInvoices(child._id);
+    };
+
+    const handlePayNow = async (invoice: any) => {
+        if (invoice.status === 'paid') {
+            toast.error('Invoice is already paid');
+            return;
+        }
+
+        setPaymentLoading(true);
+        try {
+            const { data } = await api.post('/stripe/create-payment-intent', {
+                invoiceId: invoice._id
+            });
+
+            setSelectedInvoice({
+                ...invoice,
+                outstandingAmount: data.data.invoice.outstandingAmount
+            });
+            setClientSecret(data.data.clientSecret);
+            setShowPaymentModal(true);
+        } catch (error: any) {
+            console.error('Payment intent creation failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to initialize payment');
+        } finally {
+            setPaymentLoading(false);
+        }
+    };
+
+    const handlePaymentSuccess = () => {
+        setShowPaymentModal(false);
+        setClientSecret(null);
+        setSelectedInvoice(null);
+        toast.success('Payment completed successfully!');
+        
+        // Refresh invoices
+        if (user?.role === 'student') {
+            fetchData();
+        } else if (selectedChild) {
+            fetchChildInvoices(selectedChild._id);
+        }
+    };
+
+    const handlePaymentCancel = () => {
+        setShowPaymentModal(false);
+        setClientSecret(null);
+        setSelectedInvoice(null);
     };
 
     const fetchReceipt = async (id: string) => {
@@ -209,9 +263,19 @@ export default function StudentFinancePage() {
                                 <span className="text-4xl font-black text-white">${totalPending.toLocaleString()}</span>
                             </div>
                             {totalPending > 0 && (
-                                <button className="mt-6 w-full py-3 bg-white text-indigo-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        // Find first unpaid invoice
+                                        const unpaidInvoice = invoices.find((inv: any) => inv.status !== 'paid');
+                                        if (unpaidInvoice) {
+                                            handlePayNow(unpaidInvoice);
+                                        }
+                                    }}
+                                    disabled={paymentLoading}
+                                    className="mt-6 w-full py-3 bg-white text-indigo-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
                                     <CreditCard className="w-4 h-4" />
-                                    Pay Now
+                                    {paymentLoading ? 'Processing...' : 'Pay Now'}
                                 </button>
                             )}
                         </div>
@@ -281,13 +345,25 @@ export default function StudentFinancePage() {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                <button
-                                                    onClick={() => fetchReceipt(inv._id)}
-                                                    className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-2 ml-auto"
-                                                >
-                                                    <Download className="w-3.5 h-3.5" />
-                                                    View Receipt
-                                                </button>
+                                                <div className="flex items-center gap-2 justify-end">
+                                                    {inv.status !== 'paid' && (
+                                                        <button
+                                                            onClick={() => handlePayNow(inv)}
+                                                            disabled={paymentLoading}
+                                                            className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            <CreditCard className="w-3.5 h-3.5" />
+                                                            {paymentLoading ? 'Loading...' : 'Pay'}
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => fetchReceipt(inv._id)}
+                                                        className="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" />
+                                                        View Receipt
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     )) : (
@@ -375,6 +451,39 @@ export default function StudentFinancePage() {
                             <button onClick={() => window.print()} className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white rounded-full font-black shadow-xl uppercase tracking-widest text-xs transition-all hover:bg-indigo-500">Print Receipt</button>
                             <button onClick={() => setIsReceiptOpen(false)} className="w-full sm:w-auto px-8 py-3 bg-slate-800 text-white rounded-full font-black shadow-xl uppercase tracking-widest text-xs transition-all hover:bg-slate-700">Close</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Stripe Payment Modal */}
+            {showPaymentModal && clientSecret && selectedInvoice && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-in fade-in">
+                    <div className="relative max-w-lg w-full">
+                        <button
+                            onClick={handlePaymentCancel}
+                            className="absolute -top-4 -right-4 z-10 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <X className="w-4 h-4 text-gray-600" />
+                        </button>
+                        
+                        <Elements 
+                            stripe={stripePromise} 
+                            options={{
+                                clientSecret,
+                                appearance: {
+                                    theme: 'stripe',
+                                    variables: {
+                                        colorPrimary: '#4f46e5',
+                                    },
+                                },
+                            }}
+                        >
+                            <StripePaymentForm
+                                invoice={selectedInvoice}
+                                onSuccess={handlePaymentSuccess}
+                                onCancel={handlePaymentCancel}
+                            />
+                        </Elements>
                     </div>
                 </div>
             )}

@@ -25,6 +25,7 @@ const certificateRoutes = require('./routes/certificate.routes');
 const parentRoutes = require('./routes/parent.routes');
 const contactMessageRoutes = require('./routes/contactMessage.routes');
 const gradeRoutes = require('./routes/grade.routes');
+const stripeRoutes = require('./routes/stripe.routes');
 const { handleValidationError } = require('./middlewares/validation.middleware');
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/contact-messages', contactMessageRoutes);
 app.use('/api/grades', gradeRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 app.get('/', (req, res) => {
     res.json({ message: 'School Management System API is running' });

@@ -22,6 +22,15 @@ exports.createStudent = async (req, res) => {
             parentRelationship // Optional: Father, Mother, Guardian, Other
         } = req.body;
 
+        // Name Validation
+        const nameRegex = /^[a-zA-Z\s\-\']+$/;
+        if (!firstName || !nameRegex.test(firstName)) {
+            return res.status(400).json({ success: false, message: 'First name must contain only letters, spaces, hyphens, or apostrophes (no numbers)' });
+        }
+        if (!lastName || !nameRegex.test(lastName)) {
+            return res.status(400).json({ success: false, message: 'Last name must contain only letters, spaces, hyphens, or apostrophes (no numbers)' });
+        }
+
         // Age Validation
         if (profile?.dob) {
             const birthDate = new Date(profile.dob);
@@ -522,8 +531,15 @@ exports.bulkImportStudents = async (req, res) => {
                 const generatedPassword = s.password || generatePassword();
 
                 // Basic validation
+                // Basic validation
                 if (!s.firstName || !s.lastName || !s.email) {
                     importResults.push({ email: s.email, status: 'failed', reason: 'Missing required fields' });
+                    continue;
+                }
+
+                const nameRegex = /^[a-zA-Z\s\-\']+$/;
+                if (!nameRegex.test(s.firstName) || !nameRegex.test(s.lastName)) {
+                    importResults.push({ email: s.email, status: 'failed', reason: 'Names must contain only letters, spaces, hyphens, or apostrophes (no numbers)' });
                     continue;
                 }
 

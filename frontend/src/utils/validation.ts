@@ -130,7 +130,7 @@ export const validatePhone = (phone: string): ValidationResult => {
 
   const phoneRegex = /^[\d\s\-\+\(\)]+$/;
   const digitsOnly = phone.replace(/\D/g, '');
-  
+
   if (!phoneRegex.test(phone)) {
     return { isValid: false, message: 'Invalid phone number format' };
   }
@@ -326,6 +326,35 @@ export const validateExam = (data: {
 };
 
 /**
+ * Validates a name (first name, last name).
+ * Prohibits numbers and special characters unlike standard strings.
+ * @param name - Name to validate.
+ * @param fieldName - Name of the field.
+ * @returns Validation result.
+ */
+export const validateName = (name: string, fieldName: string): ValidationResult => {
+  if (!name || name.trim() === '') {
+    return { isValid: false, message: `${fieldName} is required` };
+  }
+
+  // Regex: Allow letters, spaces, hyphens, and apostrophes. No numbers.
+  const nameRegex = /^[a-zA-Z\s\-\']+$/;
+  if (!nameRegex.test(name)) {
+    return { isValid: false, message: `${fieldName} must contain only letters, spaces, hyphens, or apostrophes (no numbers)` };
+  }
+
+  if (name.length < 2) {
+    return { isValid: false, message: `${fieldName} must be at least 2 characters` };
+  }
+
+  if (name.length > 50) {
+    return { isValid: false, message: `${fieldName} must be at most 50 characters` };
+  }
+
+  return { isValid: true, message: '' };
+};
+
+/**
  * Validates student form data.
  * @param data - Student data.
  * @returns Validation result with errors array.
@@ -335,29 +364,20 @@ export const validateStudent = (data: {
   lastName?: string;
   email?: string;
   password?: string;
+  phone?: string;
 }): ValidationResult => {
   const errors: ValidationError[] = [];
 
   // First name validation
-  const firstNameResult = validateRequired(data.firstName, 'First name');
+  const firstNameResult = validateName(data.firstName || '', 'First name');
   if (!firstNameResult.isValid) {
     errors.push({ field: 'firstName', message: firstNameResult.message });
-  } else {
-    const lengthResult = validateLength(data.firstName!, 1, 50, 'First name');
-    if (!lengthResult.isValid) {
-      errors.push({ field: 'firstName', message: lengthResult.message });
-    }
   }
 
   // Last name validation
-  const lastNameResult = validateRequired(data.lastName, 'Last name');
+  const lastNameResult = validateName(data.lastName || '', 'Last name');
   if (!lastNameResult.isValid) {
     errors.push({ field: 'lastName', message: lastNameResult.message });
-  } else {
-    const lengthResult = validateLength(data.lastName!, 1, 50, 'Last name');
-    if (!lengthResult.isValid) {
-      errors.push({ field: 'lastName', message: lengthResult.message });
-    }
   }
 
   // Email validation
@@ -371,6 +391,14 @@ export const validateStudent = (data: {
     const passwordResult = validateLength(data.password, 6, 100, 'Password');
     if (!passwordResult.isValid) {
       errors.push({ field: 'password', message: passwordResult.message });
+    }
+  }
+
+  // Phone validation (optional but if provided should be valid)
+  if (data.phone) {
+    const phoneResult = validatePhone(data.phone);
+    if (!phoneResult.isValid) {
+      errors.push({ field: 'phone', message: phoneResult.message });
     }
   }
 

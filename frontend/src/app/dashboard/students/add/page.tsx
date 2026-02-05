@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../../utils/api';
+import { validateStudent } from '@/utils/validation';
 import Link from 'next/link';
 
 export default function AddStudentPage() {
@@ -49,6 +50,24 @@ export default function AddStudentPage() {
         e.preventDefault();
         setLoading(true);
         setError('');
+
+        // Client-side Validation
+        const validation = validateStudent({
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            password: formData.password,
+            phone: formData.phone
+        });
+
+        if (!validation.isValid) {
+            const firstError = validation.errors && validation.errors.length > 0
+                ? validation.errors[0].message
+                : validation.message;
+            setError(firstError);
+            setLoading(false);
+            return;
+        }
 
         try {
             const { data } = await api.post('/students', {

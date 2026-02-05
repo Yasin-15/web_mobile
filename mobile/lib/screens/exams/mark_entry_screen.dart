@@ -17,6 +17,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
   List<dynamic> classStudents = [];
   Map<String, dynamic> marksData = {}; // studentId: {score, remarks}
   bool isLoadingStudents = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -81,10 +82,10 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
           maxMarks,
         );
 
-        if (!validation['isValid']) {
+        if (!validation.isValid) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Student ${entry.key}: ${validation['message']}'),
+              content: Text('Student ${entry.key}: ${validation.message}'),
             ),
           );
           return;
@@ -152,7 +153,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.05),
+                      fillColor: Colors.white.withValues(alpha: 0.05),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -181,7 +182,7 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.05),
+                      fillColor: Colors.white.withValues(alpha: 0.05),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -201,6 +202,24 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            child: TextField(
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Search by name or number...',
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                filled: true,
+                fillColor: Colors.white.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (val) => setState(() => _searchQuery = val),
+            ),
+          ),
           Expanded(
             child: isLoadingStudents
                 ? const Center(
@@ -215,27 +234,81 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: classStudents.length,
+                    itemCount: classStudents.where((student) {
+                      final name =
+                          '${student['firstName']} ${student['lastName']}'
+                              .toLowerCase();
+                      final profile = student['profile'] ?? {};
+                      final number =
+                          (profile['admissionNo'] ??
+                                  profile['rollNo'] ??
+                                  student['admissionNo'] ??
+                                  student['rollNo'] ??
+                                  '')
+                              .toString()
+                              .toLowerCase();
+                      final query = _searchQuery.toLowerCase();
+                      return name.contains(query) || number.contains(query);
+                    }).length,
                     itemBuilder: (context, index) {
-                      final student = classStudents[index];
+                      final filteredStudents = classStudents.where((student) {
+                        final name =
+                            '${student['firstName']} ${student['lastName']}'
+                                .toLowerCase();
+                        final profile = student['profile'] ?? {};
+                        final number =
+                            (profile['admissionNo'] ??
+                                    profile['rollNo'] ??
+                                    student['admissionNo'] ??
+                                    student['rollNo'] ??
+                                    '')
+                                .toString()
+                                .toLowerCase();
+                        final query = _searchQuery.toLowerCase();
+                        return name.contains(query) || number.contains(query);
+                      }).toList();
+
+                      final student = filteredStudents[index];
                       final sid = student['_id'];
+                      final profile = student['profile'] ?? {};
+                      final number =
+                          (profile['admissionNo'] ??
+                                  profile['rollNo'] ??
+                                  student['admissionNo'] ??
+                                  student['rollNo'] ??
+                                  '')
+                              .toString();
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
                           children: [
                             Expanded(
                               flex: 2,
-                              child: Text(
-                                '${student['firstName']} ${student['lastName']}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${student['firstName']} ${student['lastName']}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (number.isNotEmpty)
+                                    Text(
+                                      number,
+                                      style: const TextStyle(
+                                        color: Colors.white54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -253,7 +326,9 @@ class _MarkEntryScreenState extends State<MarkEntryScreen> {
                                     color: Colors.white24,
                                     fontSize: 12,
                                   ),
-                                  fillColor: Colors.white.withOpacity(0.05),
+                                  fillColor: Colors.white.withValues(
+                                    alpha: 0.05,
+                                  ),
                                   filled: true,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
