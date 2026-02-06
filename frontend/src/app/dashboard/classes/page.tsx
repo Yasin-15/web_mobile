@@ -108,7 +108,7 @@ export default function ClassesPage() {
         } catch (err: any) {
             const errorMessage = err.response?.data?.message || err.response?.data?.error || "Operation failed";
             const errorDetails = err.response?.data?.errors;
-            
+
             if (errorDetails && Array.isArray(errorDetails)) {
                 alert(`${errorMessage}\n\nDetails:\n${errorDetails.map((e: any) => `- ${e.field}: ${e.message}`).join('\n')}`);
             } else {
@@ -297,7 +297,11 @@ export default function ClassesPage() {
                                     <span className="block mb-1">Subjects: {c.subjects?.length || 0}</span>
                                     <div className="flex flex-wrap gap-1">
                                         {c.subjects?.slice(0, 3).map((s: any, idx: number) => (
-                                            <span key={idx} className="text-xs bg-white/5 px-1.5 py-0.5 rounded text-slate-300">
+                                            <span
+                                                key={idx}
+                                                className="text-xs bg-white/5 px-1.5 py-0.5 rounded text-slate-300 cursor-help"
+                                                title={`Teachers: ${s.teachers?.map((t: any) => `${t.firstName} ${t.lastName}`).join(', ') || 'None'}`}
+                                            >
                                                 {s.subject?.code || 'Sub'}
                                             </span>
                                         ))}
@@ -417,7 +421,7 @@ export default function ClassesPage() {
                                             >
                                                 <option value="">Choose a Subject...</option>
                                                 {subjects.map((s: any) => (
-                                                    <option key={s._id} value={s._id} disabled={currentSubjectIds.includes(s._id) || formData.subjects.some(fs => fs.subject === s._id)}>
+                                                    <option key={s._id} value={s._id} disabled={currentSubjectIds.includes(s._id)}>
                                                         {s.name} ({s.code})
                                                     </option>
                                                 ))}

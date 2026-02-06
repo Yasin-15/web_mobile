@@ -57,15 +57,15 @@ class _ZoomDrawerScreenState extends State<ZoomDrawerScreen> {
         },
       ),
       mainScreen: _currentScreen,
-      borderRadius: 24.0,
+      borderRadius: 30.0,
       showShadow: true,
       angle: 0.0, // Reduced angle for cleaner look
       drawerShadowsBackgroundColor: Colors.black.withOpacity(0.3),
       slideWidth:
           MediaQuery.of(context).size.width *
-          0.70, // Slightly improved slide width
+          0.75, // Increased slide width for better accessibility
       menuBackgroundColor: const Color(0xFF1E1E2D),
-      mainScreenScale: 0.2, // Slightly larger scale for main screen when open
+      mainScreenScale: 0.15, // Slightly larger scale for main screen when open
       // performance optimization
       duration: const Duration(milliseconds: 250), // Fast animation
       reverseDuration: const Duration(milliseconds: 250),

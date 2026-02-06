@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/student_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_zoom_drawer/flutter_zoom_drawer.dart';
 
 class StudentFeesScreen extends StatefulWidget {
   const StudentFeesScreen({super.key});
@@ -43,13 +44,19 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.black),
+            onPressed: () => ZoomDrawer.of(context)?.toggle(),
+          ),
+        ),
         title: const Text(
           'My Fees',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        centerTitle: true,
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -141,7 +148,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
-              'Academic Year 2024-25',
+              'Academic Year 2025-26',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 12,
